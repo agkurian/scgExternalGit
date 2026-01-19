@@ -1,0 +1,12 @@
+#############################################################
+#                                                           #
+#  This is a configuration file for sensitivity analysis    #
+#                                                           #
+#############################################################
+DTYPE=range
+NPARS=0
+NSETS=1
+
+PDATA=
+
+VALRU=
