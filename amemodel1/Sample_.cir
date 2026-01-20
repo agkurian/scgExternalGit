@@ -35,6 +35,38 @@
      </Port>
     </Ports>
    </Comp>
+   <Comp alias="constant_1" catname="sig" circuitScopeId="3" depth="203" displayName="constant" geometry="1" iconDescription="constant signal source" labelVisible="0" libraryId="sig.constant" name="constant" scaleX="1.000000" scaleY="1.000000" type="0">
+    <Pos x="577" y="143"/>
+    <LabelPos configured="0" direction="0" x="0" y="0"/>
+    <CirCompIcon cirIconIdentity="1" cirPortGraphics="IDxQT1JUUz4KICA8UE9SVCBmYWNlPSIzIiB0eXBlPSJzaWduYWwiIHg9IjQwIiB5PSIxNSI+CiAgIDxQT1JUX0JJVE1BUD4kQU1FL2xpYnBvcnRzL0ljb25zL3NpZ25hbDFweC5zdmc8L1BPUlRfQklUTUFQPgogIDwvUE9SVD4KIDwvUE9SVFM+Cg==" cirPortHidden="0">
+     <IconMap data="H4sIAAAAAAACCo1SsY7bMAzd8xUEb3ALXGTLzqF2EOVwHTp16NDOgevIDhFZMiSd7fTrKzlOu3SoIIDUE/XIR/HwOvcKRmkdGS0SzrIEpG7MmXQnkh/fv2zL5PW4ObixgxCp3b7upaNe4KjPTPWOUV93pCW743iPEnjxftin6TRNbCqYsV2aZ1mWBp41ZD8r0td/BfKqqtLlFv9UhpzlCD9rJ79Z05KSAj3pGwKdBX6lUSplTjxQC8yGGeG22onO/iJwtxwukrqLF5hX8TSSnD6b+AAy2GWQVwgm5GuVmQS6xhqlllr3bqibkHCw0kk7Sgz96I4bADg0ZBslIRSkBD61y0Jw3pprePCULesBbHvy0ioKJugJcBOS8x17Cd7t4dnoYHqn93L24G2tXWts6Hlfe0vzBw6xZA487JLlxY5/RGiN9tu27kkFruTNUq2SFXX0S0baoPp4PaSRNUhIu6hjaWDz7vyJnxx1ulZ4zx36/xCmjZb/r2rmAosifAF/aJrz+AMByVdklTcYdeuMhsGQ9mFm8vKZc/YCRc74cwyEiHxabclKKApW/b3JWA4Qye5a4nAdN78BjYBj0dICAAA=" format="svgz/base64"/>
+    </CirCompIcon>
+    <Ports>
+     <Port connect="1" decorationOrientation="0" decorationVisible="0" face="3" name="" type="signal">
+      <Pos x="40" y="15"/>
+      <DecorationBoundingRect height="0" width="0" x="0" y="0"/>
+      <Connects>
+       <Connect num="3" port="0"/>
+      </Connects>
+     </Port>
+    </Ports>
+   </Comp>
+   <Comp alias="signalsink_1" catname="sig" circuitScopeId="4" depth="204" displayName="signalsink" geometry="1" iconDescription="general signal sink" labelVisible="0" libraryId="sig.signalsink" name="signalsink" scaleX="1.000000" scaleY="1.000000" type="0">
+    <Pos x="617" y="153"/>
+    <LabelPos configured="0" direction="0" x="0" y="0"/>
+    <CirCompIcon cirIconIdentity="1" cirPortGraphics="IDxQT1JUUz4KICA8UE9SVCBmYWNlPSIyIiB0eXBlPSJzaWduYWwiIHg9IjEiIHk9IjUiPgogICA8UE9SVF9CSVRNQVA+JEFNRS9saWJwb3J0cy9JY29ucy9zaWduYWwxcHguc3ZnPC9QT1JUX0JJVE1BUD4KICA8L1BPUlQ+CiA8L1BPUlRTPgo=" cirPortHidden="0">
+     <IconMap data="H4sIAAAAAAACCp1RuVLDMBDt+YqdpXATfHEk9kTJDAUVBQXUGWMr9k5kySMJH3/P2gkZCipUaA89vbdP2u7HVkEvrSOjRZCEcQBSl6YiXYvg4/3lbhPsdzdb19fASO3yopWOWoG9rkLVupDaoiYtw3MfzyiBjfddHkXDMITDfWhsHaVxHEfMc4HkoyJ9+guYZFkWLad4nQyTMEX4LJx8s+ZISgr0pCcEqgS+Ui+VMoeEqQXG3YgwXeJAlW8EZnPeSKobfyl6ksOzmeEQQwYZgmGtozKDQFdao9QyZ+66omSxzkonbS+R38LK0s9C6yt9+oscI4bUy1zll/OH5OCo1oXimwCwZVsS2IASqI2WCM5bc2KF23hZP427lry0ijiweW6PCc/Kxjg8hI9cpwKf5mRKz53oLNAZNf1bpDOkPf9eukpgvWJWSFcbgMVTVM8bf+DuG+p4C5w1AgAA" format="svgz/base64"/>
+    </CirCompIcon>
+    <Ports>
+     <Port connect="1" decorationOrientation="0" decorationVisible="0" face="2" name="" type="signal">
+      <Pos x="1" y="5"/>
+      <DecorationBoundingRect height="0" width="0" x="0" y="0"/>
+      <Connects>
+       <Connect num="2" port="0"/>
+      </Connects>
+     </Port>
+    </Ports>
+   </Comp>
   </Comps>
   <animationProperties loop="0" speed="1"/>
   <globalParams/>
