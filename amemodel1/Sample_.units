@@ -1,4 +1,4 @@
-<Unit_Configuration Active_Configuration_Id="{603ada5e-e64f-4478-9695-b9d995f93cc6}" Version="17.0">
+<Unit_Configuration Active_Configuration_Id="{603ada5e-e64f-4478-9695-b9d995f93cc6}" Version="">
     <Configuration_Definition Id="{603ada5e-e64f-4478-9695-b9d995f93cc6}" IsDuplicate="0" IsFactory="1" IsReference="0" Name="International System of Units (SI)" Scope="0">
         <Domain_Definition Domain="density">
             <Unit_Definition Conversion_String="*1.0e3" Default_Unit="lb/ft**3" Name="g/cm**3" User_Specific="1"/>
