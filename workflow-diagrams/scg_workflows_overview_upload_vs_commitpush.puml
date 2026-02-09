@@ -1,0 +1,162 @@
+@startuml scg_workflows_overview_upload_vs_commitpush
+' Overview diagram: shared vs differing dependencies
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 28
+skinparam ranksep 32
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#2E7D32>Green</color> : publish workflow path
+  <color:#1565C0>Blue</color> : commit&push workflow path
+  <color:#7B1FA2>Purple</color> : shared workflow steps
+  <color:#6B6B6B>Gray dashed</color> : dependency / uses (static)
+endlegend
+
+top to bottom direction
+
+' Color-code workflow-specific pieces
+skinparam classBackgroundColor<<publish>> #E8F5E9
+skinparam classBorderColor<<publish>> #2E7D32
+skinparam ArrowColor<<publish>> #2E7D32
+
+skinparam classBackgroundColor<<commitpush>> #E3F2FD
+skinparam classBorderColor<<commitpush>> #1565C0
+skinparam ArrowColor<<commitpush>> #1565C0
+
+' Stable group ordering (GUI top -> adapters middle -> external bottom)
+gui_amesim_gui -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_data_display" as P_display {
+    class SIMSCGModelCollectionViewerWidget
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class SCGFileDialogWrapper
+    class SIMSCGConnectorPublishWidget <<publish>>
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+
+    class SCGPublishCollectionWorkflow <<publish>>
+    class SCGCommitAndPushWorkflow <<commitpush>>
+  }
+
+  SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : upload()\n(entry)
+  SCGFileDialogWrapper ..[#6B6B6B]..> SCGIntegration
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+    abstract class SCGRequest
+
+    class SCGGetCEAStringRequest <<publish>>
+    class SCGSetServerMetaDataRequest <<publish>>
+    class SCGGetServerMetaDataRequest <<publish>>
+    class SCGSaveCollectionRequest <<publish>>
+    class SCGCommitAndPushRequest <<commitpush>>
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class ConnectionManager
+    class Stub <<gRPC stub>>
+
+    DataManagerImpl ..|> DataManagerInterface
+    GITConnectorAPIImpl -[#7B1FA2]-> DataManagerInterface
+    ConnectionManager -[#7B1FA2]-> Stub : channel\nlocalhost:<grpc_port>
+  }
+}
+
+package "External / Third-party" as external_third_party {
+  class "SCG Core" as ScgCore <<local gRPC endpoint>>
+  class "SCG UX" as ScgUx <<local web app>>
+  class "scg_config.properties" as ScgConfigProperties <<config file>>
+
+  Stub -[#7B1FA2]-> ScgCore : gRPC
+  ScgConfigProperties ..[#6B6B6B]..> ScgCore : ports\n(grpc_port)
+  ScgConfigProperties ..[#6B6B6B]..> ScgUx : ports\n(workflow_port)
+}
+
+package "transverse/scg_adapter/extractor" as P_extractor {
+  class "extractor" as Extractor <<publish>>
+}
+
+package "transverse/pack_file/pack_kernel" as P_pack_kernel {
+  class "pack_kernel" as PackKernel <<publish>>
+}
+
+' Nudge ordering of the two optional blocks
+P_extractor -[hidden]down-> P_pack_kernel
+
+' Shared dispatch mechanism (both workflows create requests and dispatch via service)
+SCGPublishCollectionWorkflow -[#2E7D32]-> SCGRequestFactory : create requests
+SCGCommitAndPushWorkflow -[#1565C0]-> SCGRequestFactory : create requests
+
+SCGRequestFactory -[#7B1FA2]-> SCGRequest
+SCGService -[#7B1FA2]-> SCGRequest : execute()
+SCGRequest -[#7B1FA2]-> SCGConnectorAPIInterface
+
+' Publish-specific request sequence
+SCGPublishCollectionWorkflow ..[#2E7D32]..> SCGGetCEAStringRequest
+SCGPublishCollectionWorkflow ..[#2E7D32]..> SCGSetServerMetaDataRequest
+SCGPublishCollectionWorkflow ..[#2E7D32]..> SCGGetServerMetaDataRequest
+SCGPublishCollectionWorkflow ..[#2E7D32]..> SCGSaveCollectionRequest
+
+' Commit&Push-specific request
+SCGCommitAndPushWorkflow ..[#1565C0]..> SCGCommitAndPushRequest
+
+' Publish-specific dependency scan before save
+DataManagerImpl -[#2E7D32]-> Extractor : createOrEditCollection()\n(dependency scan)
+Extractor -[#2E7D32]-> PackKernel : compute dependencies
+
+' Where the two UI paths diverge
+SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMSCGConnectorPublishWidget : upload()\n(non-external)
+SIMSCGConnectorPublishWidget -[#2E7D32]-> SCGIntegration : publishModel(...)
+SCGIntegration -[#2E7D32]-> SCGPublishCollectionWorkflow
+
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : upload()\n(external)
+SCGIntegration -[#1565C0]-> SCGCommitAndPushWorkflow
+
+note right of SIMSCGConnectorPublishWidget
+  Extra pieces vs commit&push:
+  - publish widget in GUI
+  - multiple requests (CEA + metadata + save)
+  - extractor + pack_kernel dependency discovery
+end note
+
+note right of SCGCommitAndPushWorkflow
+  Extra pieces vs publish:
+  - commit dialog + commit&push request
+  - no extractor/pack_kernel dependency scan
+end note
+
+note bottom
+  Detailed diagrams:
+  - docs/scg_upload_workflow_dependency.puml
+  - docs/scg_commit_and_push_workflow_dependency.puml
+end note
+
+@enduml

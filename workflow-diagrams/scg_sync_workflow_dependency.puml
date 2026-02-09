@@ -1,0 +1,216 @@
+@startuml scg_sync_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+top to bottom direction
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> transverse_pack_kernel
+transverse_pack_kernel -[hidden]down-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_data_display" as P_display {
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    abstract class SCGWorkflow
+
+    class SCGSyncCollectionWorkflow
+    abstract class SCGAccessModelWorkflow
+
+    class SCGFileDialogWrapper
+    class "ModelManagementSupportInterface" as ModelManagementSupportInterface
+
+    SCGSyncCollectionWorkflow -|> SCGAccessModelWorkflow
+    SCGAccessModelWorkflow -|> SCGWorkflow
+
+    SCGIntegration o-- ModelManagementSupportInterface
+  }
+
+  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
+  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : sync()\n(virtual)
+  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : prepareSyncCollection(...)
+  SCGIntegration -[#1565C0]-> SCGSyncCollectionWorkflow : create + executeSCGWorkflow()
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class SCGConfig
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGAnswer
+
+    class SCGGetPreprocessedXmlRequest
+    class SCGGetCEAStringRequest
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGGetPreprocessedXmlRequest -|> SCGRequest
+    SCGGetCEAStringRequest -|> SCGRequest
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    package "extractor" as P_extractor {
+      class "extractor::CEASettings" as CEASettings
+      class "extractor::ExtracorCoreService" as ExtractorCoreService
+      class "extractor::CEACreator" as CEACreator
+      class "extractor::CollectionCompleteInput" as CollectionCompleteInput
+      class "extractor::MessageMapperVisitor" as MessageMapperVisitor
+    }
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+
+    ' Sync-specific preprocessing is implemented via extractor as well
+    DataManagerImpl ..[#6B6B6B]..> ExtractorCoreService : getPreprocessedDependencyXML()
+    ExtractorCoreService ..[#6B6B6B]..> CEACreator
+  }
+
+  package "scg_base" as P_scg_base {
+    class scg_base <<cmake target>>
+    class MLMConfig
+    scg_base o-- MLMConfig
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
+    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
+    mlm_proto o-- MLMGeneratedProto
+  }
+}
+
+package "transverse/pack_file/pack_kernel" as transverse_pack_kernel {
+  class AMEKernelPackSettings
+  class AMEKernelPackManager
+  class AMEPackDependencyContainer
+
+  AMEKernelPackManager ..[#6B6B6B]..> AMEKernelPackSettings
+  AMEKernelPackManager o-- AMEPackDependencyContainer
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG configuration" as P_scg_config {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+    class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
+    class "$HOME/.Simcenter/.scg/config" as ScgConfigDirLnx <<Linux path>>
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+  }
+
+  package "Local SCG UX" as P_scg_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+  }
+
+  package "Remote SCG Server" as P_remote_scg {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =====================================
+' Sync workflow dependencies
+' =====================================
+
+' Workflow phase 1: compute preprocessed dependencies XML (server-side logic via adapter)
+SCGSyncCollectionWorkflow -[#1565C0]-> SCGIntegration : getPreProcessedXml(artifact,...)
+SCGIntegration -[#1565C0]-> SCGRequestFactory : createRequestGetPreprocessedXml(...)
+SCGIntegration -[#1565C0]-> SCGService : dispatchRequest()
+SCGService -[#1565C0]-> SCGGetPreprocessedXmlRequest : execute()
+SCGGetPreprocessedXmlRequest -[#1565C0]-> SCGConnectorAPIInterface : getPreprocessedDependencyXML(...)
+SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
+
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : getPreprocessedDependencyXML(...)
+DataManagerInterface <|.. DataManagerImpl
+
+' Apply the dependency model locally in Amesim
+SCGSyncCollectionWorkflow -[#1565C0]-> ModelManagementSupportInterface : SetDependencies(modified_xml)
+
+' Workflow phase 2: (re)create collection based on the updated dependency state
+SCGSyncCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCEAJsonString(...)
+SCGService -[#1565C0]-> SCGGetCEAStringRequest : execute()
+SCGGetCEAStringRequest -[#1565C0]-> SCGConnectorAPIInterface : createOrEditCollection(...)
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : createOrEditCollection(...)
+
+' createOrEditCollection() internally uses extractor to compute associated/recursive collections
+DataManagerImpl -[#1565C0]-> CEASettings : configure\n(node/category)
+DataManagerImpl -[#1565C0]-> ExtractorCoreService : GetCollectionCompleteInput(...)
+ExtractorCoreService -[#1565C0]-> CEACreator : buildCollection()/resolveDependencies()
+ExtractorCoreService -[#1565C0]-> CollectionCompleteInput
+DataManagerImpl -[#1565C0]-> MessageMapperVisitor : mappedOutput(...)
+
+' extractor uses kernel-side pack dependency discovery utilities
+CEACreator -[#1565C0]-> AMEKernelPackSettings
+CEACreator -[#1565C0]-> AMEKernelPackManager
+CEACreator -[#1565C0]-> AMEPackDependencyContainer
+
+ConnectionManager -[#1565C0]-> Stub : gRPC
+Stub -[#1565C0]-> ScgCore : localhost:<grpc_port>
+
+' SCG Core may relay to a remote SCG server (Amesim does not call it directly)
+ScgCore ..[#1565C0]..> ScgServer : sync status / metadata\n(out of process)
+
+' Build-time / API-level dependencies (CMake targets)
+DataManagerImpl ..[#6B6B6B]..> scg_base
+DataManagerImpl ..[#6B6B6B]..> mlm_proto
+GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
+
+' =====================================
+' Local port + URL resolution (config)
+' =====================================
+
+MLMConfig -[#1565C0]-> ScgConfigProperties : reads tokens\nworkflow_port / server_port / grpc_port
+ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
+ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+
+ConnectionManager -up[#1565C0]-> MLMConfig : GetScgGrpcPort(); check localhost port
+SCGConfig -up[#1565C0]-> MLMConfig : GetScgWorkflowPort()
+SCGConfig -right[#1565C0]-> ScgUx : loads embedded web UI
+
+note right of SCGSyncCollectionWorkflow
+  Sync flow (model collection) does two key steps:
+  1) Fetch preprocessed dependency XML and apply it locally via SetDependencies()
+  2) Call createOrEditCollection() (CEA JSON) to refresh/align collection state
+
+  Detailed upload/publish adds extra steps (server metadata + saveCollection).
+end note
+
+@enduml

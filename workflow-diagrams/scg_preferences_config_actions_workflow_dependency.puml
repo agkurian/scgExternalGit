@@ -1,0 +1,220 @@
+@startuml scg_preferences_config_actions_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+top to bottom direction
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> kernel_preferences
+kernel_preferences -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_main_window" as P_main_window {
+    class SIMMainWindow
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class SIMPreferencesDialog
+    class SIMPreferencesGeneral
+    class SIMPreferencesModelMgt
+
+    class QWebEngineView
+    class QWebEnginePage
+    class QWebEngineProfile
+
+    SIMPreferencesDialog o-- SIMPreferencesGeneral
+    SIMPreferencesDialog o-- SIMPreferencesModelMgt
+
+    SIMPreferencesModelMgt -[#1565C0]-> QWebEngineView : LaunchConfigureServerDialog()
+    QWebEngineView ..[#6B6B6B]..> QWebEnginePage
+    QWebEnginePage ..[#6B6B6B]..> QWebEngineProfile
+
+    SIMPreferencesModelMgt ..[#6B6B6B]..> SIMPreferencesGeneral : signalSCGServerUpdated()\n(update tooltip)
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    abstract class SCGWorkflow
+    class GetSCGServerListWorkflow
+
+    GetSCGServerListWorkflow -|> SCGWorkflow
+
+    SIMPreferencesModelMgt -[#1565C0]-> SCGIntegration : getSCGServerList(list, error)
+    SCGIntegration -[#1565C0]-> GetSCGServerListWorkflow : create + executeSCGWorkflow()
+  }
+
+  SIMMainWindow -[#1565C0]-> SIMPreferencesDialog : open Preferences
+  SIMPreferencesDialog -[#1565C0]-> SIMPreferencesModelMgt : user selects\n"Model management" tab
+}
+
+package "kernel/application/ame_basic_tools_shared/preferences" as kernel_preferences {
+  class SIMPreferences
+  class COMPreferences
+
+  SIMPreferences -|> COMPreferences
+  class "Amesim preferences file" as AmesimPreferencesFile <<config file>>
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "scg_base" as P_scg_base {
+    class scg_base <<cmake target>>
+    class MLMConfig
+
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+    class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
+    class "$HOME/.Simcenter/.scg/config" as ScgConfigDirLnx <<Linux path>>
+
+    scg_base o-- MLMConfig
+    MLMConfig -[#1565C0]-> ScgConfigProperties : GetScgWorkflowPort()\nIsValidPort()
+    ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
+    ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+  }
+
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGAnswer
+
+    class SCGAnswerGetServerlistAPI
+    class SCGRequestGetServerlistAPI
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    class SCGConfig
+
+    SCGAnswerGetServerlistAPI -|> SCGAnswer
+    SCGRequestGetServerlistAPI -|> SCGRequest
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
+    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
+    mlm_proto o-- MLMGeneratedProto
+  }
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG UX" as P_scg_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+    class "Configured Servers page" as UxConfiguredServers <<web route>>
+    class "File Tools configuration UI" as UxFileTools <<web route>>
+
+    ScgUx o-- UxConfiguredServers
+    ScgUx o-- UxFileTools
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+
+    class "SCG REST API" as ScgRest <<local REST endpoint>>
+
+    class "Server configuration store" as ServerStore <<config/persistency>>
+    class "File tool configuration store" as FileToolStore <<config/persistency>>
+  }
+
+  package "Remote SCG Server" as P_remote_scg {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =====================================
+' Preferences - server + tool configuration (single embedded UX entry)
+' =====================================
+
+' Preferences persists active server selection (Amesim-side)
+SIMPreferencesModelMgt -[#1565C0]-> SIMPreferences : getActiveSCGServerUrl()\nsetActiveSCGServerUrl(...)
+SIMPreferences -[#1565C0]-> AmesimPreferencesFile : read/write\nConfiguredSCGServerUrl\nSCGWorkspacePath
+
+' Validate button checks local SCG UX availability (workflow_port)
+SIMPreferencesModelMgt -[#1565C0]-> MLMConfig : GetScgWorkflowPort()\nIsValidPort(port)
+
+' URL construction for the embedded configuration UI
+SIMPreferencesModelMgt -[#1565C0]-> SCGConfig : C4G_UX_BASE_URL()\nC4G_UX_CONFIGURE_SERVER_SUB_URL()
+SCGConfig -[#1565C0]-> MLMConfig : GetScgWorkflowPort()
+
+QWebEngineView -[#1565C0]-> ScgUx : loads embedded web UI\nhttp://localhost:<workflow_port>/ClientForGit/index.html#...
+ScgUx -[#1565C0]-> UxConfiguredServers : opens\n/configuredServers?clientId=UX_CLIENT&...&restPort=<workflow_port>
+
+' --- Server configuration (inside UX) ---
+UxConfiguredServers -[#1565C0]-> ScgRest : add/remove/update\nserver configurations
+ScgRest -[#1565C0]-> ScgCore : persist server config
+ScgCore -[#1565C0]-> ServerStore : read/write config
+ScgCore ..[#1565C0]..> ScgServer : connectivity\n(out of process)
+
+' After closing the web dialog, Amesim refreshes the configured server list (gRPC)
+GetSCGServerListWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetSCGServerlist()
+GetSCGServerListWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+SCGService -[#1565C0]-> SCGRequestGetServerlistAPI : execute()
+SCGRequestGetServerlistAPI -[#1565C0]-> SCGConnectorAPIInterface : getAllServerConfigDetails(...)
+SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : getAllServerConfigDetails(...)
+DataManagerInterface <|.. DataManagerImpl
+ConnectionManager -[#1565C0]-> Stub : gRPC\ngetAllConfigurationDetails()
+Stub -[#1565C0]-> ScgCore : localhost:<grpc_port>
+
+' --- Compare/Merge tool configuration (inside UX) ---
+UxConfiguredServers ..[#1565C0]..> UxFileTools : user navigates\n(in-web UI)
+UxFileTools -[#1565C0]-> ScgRest : add/update tool commands\n(extension + toolType -> program + args)
+ScgRest -[#1565C0]-> ScgCore : persist tool commands
+ScgCore -[#1565C0]-> FileToolStore : read/write config
+
+' Build-time / API-level dependencies (CMake targets)
+GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
+DataManagerImpl ..[#6B6B6B]..> mlm_proto
+DataManagerImpl ..[#6B6B6B]..> scg_base
+
+note right of SIMPreferencesModelMgt
+  Preferences hosts a single embedded SCG UX entry point:
+  /configuredServers.
+
+  From that UX area users can:
+  - configure remote SCG servers (stored by SCG Core)
+  - configure file compare/merge tools per extension
+
+  Amesim itself persists only the selected active server/workspace in SIMPreferences.
+
+  Runtime flows are documented separately:
+  - compare/merge tool launching: docs/scg_compare_tool_workflow_dependency.puml
+  - resolve conflict workflow: docs/scg_resolve_conflict_workflow_dependency.puml
+end note
+
+@enduml

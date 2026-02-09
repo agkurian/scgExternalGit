@@ -1,0 +1,201 @@
+@startuml scg_open_ame_file_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+left to right direction
+
+' Encourage stable left-to-right placement of the big groups
+gui_amesim_gui -[hidden]-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_main_window" as P_main_window {
+    class SIMMainWindow
+    class "QDockWidget (SCG collection viewer)" as SCGCollectionViewerDockWidget
+
+    SIMMainWindow *-- SCGCollectionViewerDockWidget
+  }
+
+  package "sim_data_display" as P_display {
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    class "scg::SCGIntegrationPrivate" as SCGIntegrationPrivate
+
+    abstract class SCGWorkflow
+    class SCGGetCollectionIdWorkflow
+    class SCGGetCollectionMetainformationDetailsWorkflow
+
+    class SCGUXMessenger
+
+    SCGIntegration *-- SCGIntegrationPrivate
+    SCGIntegration *-- SCGUXMessenger
+
+    SCGGetCollectionIdWorkflow -|> SCGWorkflow
+    SCGGetCollectionMetainformationDetailsWorkflow -|> SCGWorkflow
+  }
+
+  SIMMainWindow o-- SIMSCGModelCollectionViewerWidget : mSCGModelCollectionViewerWidget
+
+  SIMMainWindow -[#1565C0]-> SIMSCGModelCollectionViewerWidget : updateSCGCollectionViewerWidget()\nsetupCollectionModel()
+  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : validateModelforCollectionEditor(document, collection_id)
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGAnswer
+
+    class SCGGetCollectionIdRequest
+    class SCGGetCollectionMetaInformationsRequest
+    class SCGGetServerMetaDataRequest
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGGetCollectionIdRequest -|> SCGRequest
+    SCGGetCollectionMetaInformationsRequest -|> SCGRequest
+    SCGGetServerMetaDataRequest -|> SCGRequest
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "scg_base" as P_scg_base {
+    class MLMConfig
+    class scg_base <<cmake target>>
+
+    scg_base o-- MLMConfig
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
+  }
+
+  GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
+  DataManagerImpl ..[#6B6B6B]..> mlm_proto : links
+  DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG configuration" as P_scg_config {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+    class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
+    class "$HOME/.Simcenter/.scg/config" as ScgConfigDirLnx <<Linux path>>
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class "SCG Core gRPC endpoint" as SCGCoreGrpc
+    class Stub <<gRPC stub>>
+
+    SCGCoreGrpc : host=localhost
+    SCGCoreGrpc : port=<grpc_port>
+  }
+
+  package "Local SCG UX" as P_scg_ux {
+    class "ClientForGit UX (Web app)" as SCGUX
+    class "QWebEngineView" as QWebEngineView
+
+    QWebEngineView -[#1565C0]-> SCGUX : loads URL\nhttp://localhost:<workflow_port>/ClientForGit/index.html#...
+  }
+}
+
+' =====================================
+' Open file -> show/hide SCG viewer dock
+' =====================================
+
+SIMMainWindow -[#1565C0]-> SIMSCGModelCollectionViewerWidget : setupCollectionModel()
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : setPageInWebView(...)
+SIMSCGCollectionViewerWidget -[#1565C0]-> QWebEngineView : loads embedded web UI
+
+SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : getUXMessenger()\n(ws port for URL params)
+
+' SCG detection predicate used by setupCollectionModel()
+SCGIntegration -[#1565C0]-> SCGIntegrationPrivate : isManagedLocally(coll_path, collection_id)
+SCGIntegrationPrivate -[#1565C0]-> SCGGetCollectionIdWorkflow : getCollectionId()\nexecuteSCGWorkflow()
+SCGIntegration -[#1565C0]-> SCGGetCollectionMetainformationDetailsWorkflow : getCollectionMetaInfo()\nexecuteSCGWorkflow()
+
+' Workflows dispatch SysDM requests
+SCGGetCollectionIdWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCollectionId(path, user)
+SCGRequestFactory -[#1565C0]-> SCGGetCollectionIdRequest
+SCGGetCollectionIdWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGGetCollectionMetainformationDetailsWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCollectionDetails(user, collection_id)
+SCGRequestFactory -[#1565C0]-> SCGGetCollectionMetaInformationsRequest
+SCGRequestFactory -[#1565C0]-> SCGGetServerMetaDataRequest
+SCGGetCollectionMetainformationDetailsWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+' =====================================
+' SysDM service -> API -> data manager -> gRPC
+' =====================================
+SCGGetCollectionIdRequest -[#1565C0]-> SCGConnectorAPIInterface : getCollectionId(path, user)
+SCGGetCollectionMetaInformationsRequest -[#1565C0]-> SCGConnectorAPIInterface : getCollectionMetaInformations(...)
+SCGGetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : getServerMetaData(...)
+
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+ConnectionManager -[#1565C0]-> Stub : CreateChannel("localhost:<grpc_port>")
+Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
+
+' =====================================
+' Local port + URL resolution (config)
+' =====================================
+
+MLMConfig -[#1565C0]-> ScgConfigProperties : reads tokens\nworkflow_port / server_port / grpc_port
+ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
+ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+
+ConnectionManager -up[#1565C0]-> MLMConfig : GetScgGrpcPort()
+SCGIntegration -up[#1565C0]-> MLMConfig : (indirect) config for URLs; connection checks
+
+note right of SIMMainWindow
+  User opens a .ame file
+  1) slotOpenAmeFile() -> openCircuitFile()
+  2) document becomes active (slotActiveChanged)
+  3) updateSCGCollectionViewerWidget() shows/hides dock
+end note
+
+note right of SCGIntegration
+  validateModelforCollectionEditor() returns true when:
+  - active_document->isAmeFile()
+  - coll_path is managed locally (collection_id != "")
+  - external server OR (isConfigured() && type == AMESIM_MODEL)
+end note
+
+@enduml

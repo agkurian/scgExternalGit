@@ -1,0 +1,132 @@
+@startuml scg_compare_tool_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+top to bottom direction
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> kernel_document
+kernel_document -[hidden]down-> external_tools
+
+' Keep the runtime path visually below configuration
+external_tools -[hidden]down-> runtime_flow
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_data_display" as P_sim_data_display {
+    class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
+    class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
+
+    class SCGUXMessenger
+    class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
+
+    class "QWebEngineView" as QWebEngineView
+    class "QWebEngineProfile" as QWebEngineProfile
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionViewerWidget o-- QWebEngineView
+    QWebEngineView -[#6B6B6B]-> QWebEngineProfile
+
+    SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : messageReceived
+    SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_COMPARE_RESOLVE_TOOL
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    SCGIntegration *-- SCGUXMessenger
+
+    SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : getUXMessenger()
+    SCGIntegration -[#1565C0]-> SCGUXMessenger : returns messenger instance
+  }
+}
+
+package "kernel/document" as kernel_document {
+  class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+  class "doc_mgr::SIMDocument" as SIMDocument
+  class SIMSketchWindow
+  class "SIMEditor" as SIMEditor
+  class COMCircuitInterface
+
+  SIMDocumentManagerInterface -[#1565C0]-> SIMDocument : activeDocument()
+  SIMDocument -[#1565C0]-> SIMSketchWindow : getSketch()
+  SIMSketchWindow -[#1565C0]-> SIMEditor : getEditor()
+}
+
+package "External / Tools" as external_tools {
+  class "SCG UX" as ScgUx <<local web app>>
+
+  class "SCG REST API" as ScgRest <<local REST endpoint>>
+  class "File tool configuration store" as FileToolStore <<config/persistency>>
+
+  class "Compare tool" as CompareTool <<external process>>
+  class "Merge tool" as MergeTool <<external process>>
+  class AMEDiff <<external process>>
+
+  class COMProcess
+  class COMFileInfo
+  class "QMessageBox" as QMessageBox
+}
+
+package "Runtime (collection viewer)" as runtime_flow {
+  ' dummy package to keep the main trigger path separate from config blocks
+}
+
+' =====================================
+' Compare / merge tool launch (UX -> native)
+' =====================================
+
+' Configuration is done earlier via Preferences-embedded SCG UX.
+' At runtime, SCG UX uses persisted tool configuration to build configuredToolCommand.
+ScgUx -[#1565C0]-> ScgRest : lookup configured tool\n(extension + toolType)
+ScgRest -[#1565C0]-> FileToolStore : read tool commands
+
+ScgUx -[#1565C0]-> SCGUXMessenger : websocket message
+SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : slotOnUxMessengerMessageReceived(message)
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : initiateSCGUXWorkflow(message)
+
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : launchCompareOrMergeTool(message)
+
+' For model collections, Amesim saves dirty state before diff/merge
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMDocumentManagerInterface : active circuit + dirty flag
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMEditor : saveToSCGWorkspace(collection_path)
+
+' Tool selection is driven by the UX message payload
+note right of SIMSCGCollectionViewerWidget
+  UX_MESSAGE_COMPARE_RESOLVE_TOOL contains:
+  - toolType: COMPARE | MERGE
+  - fileExtension (e.g. .ame)
+  - fileToolCommandInfos.configuredToolCommand (program + args)
+  - fileList/headerList for AMEDiff
+
+  Amesim does not call gRPC here; it only launches
+  the configured external program with the provided inputs.
+end note
+
+' .ame uses AMEDiff (special handling)
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> AMEDiff : program_path = "AMEDiff"
+AMEDiff ..[#1565C0]..> COMProcess : startDetached(...) for compare
+AMEDiff ..[#1565C0]..> COMProcess : start(...) + waitForFinished() for merge
+COMProcess ..[#1565C0]..> QMessageBox : show error if start/fail
+
+' other extensions use configured tools from the message
+SIMSCGCollectionViewerWidget -[#1565C0]-> CompareTool : startDetached(program, args)
+SIMSCGCollectionViewerWidget -[#1565C0]-> MergeTool : start(program, args)
+CompareTool ..[#6B6B6B]..> COMFileInfo : getFileName(program_path)
+
+@enduml

@@ -1,0 +1,185 @@
+@startuml scg_resolve_conflict_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+top to bottom direction
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_scg
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_data_display" as P_sim_data_display {
+    class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
+    class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
+
+    class SCGUXMessenger
+    class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+
+    SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : messageReceived
+    SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_RESOLVE_CONFLICT
+    SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_BULKRESOLVE_CONFLICT
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+
+    abstract class SCGWorkflow
+    class SCGResolveMergeConflictWorkflow
+
+    SCGResolveMergeConflictWorkflow -|> SCGWorkflow
+
+    SCGIntegration *-- SCGUXMessenger
+
+    SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(...)
+    SCGIntegration -[#1565C0]-> SCGResolveMergeConflictWorkflow : create + executeSCGWorkflow()
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class SCGFileDialogWrapper
+    SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : getSaveModelAgainWrapperDialog()
+  }
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "scg_base" as P_scg_base {
+    class scg_base <<cmake target>>
+    class MLMConfig
+  }
+
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGAnswer
+
+    class SCGResolveMergeConflictRequest
+    class SCGResolveMergeConflictResponse
+
+    class SCGGetCollectionMergeDetailsRequest
+    class SCGGetCollectionMergeDetailsResponse
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGResolveMergeConflictRequest -|> SCGRequest
+    SCGResolveMergeConflictResponse -|> SCGAnswer
+
+    SCGGetCollectionMergeDetailsRequest -|> SCGRequest
+    SCGGetCollectionMergeDetailsResponse -|> SCGAnswer
+
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
+    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
+    mlm_proto o-- MLMGeneratedProto
+  }
+}
+
+package "External / Third-party" as external_scg {
+  package "Local SCG UX" as P_scg_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+    class "SCG REST API" as ScgRest <<local REST endpoint>>
+    class "Server configuration store" as ServerStore <<config/persistency>>
+  }
+
+  package "Remote SCG Server" as P_remote {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =====================================
+' Resolve conflict (UX -> native -> gRPC)
+' =====================================
+
+' Setup: viewer obtains the UX messenger via SCGIntegration
+SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : getUXMessenger()
+SCGIntegration -[#1565C0]-> SCGUXMessenger : returns messenger instance
+
+ScgUx -[#1565C0]-> SCGUXMessenger : websocket message
+SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : slotOnUxMessengerMessageReceived(message)
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : initiateSCGUXWorkflow(message)
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : resolveMergeConflict(message)
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(wrapper, message, error)
+
+' Resolve actions apply to the currently configured/active server session.
+ScgCore ..[#1565C0]..> ServerStore : read configured servers\n(active selection/session)
+ScgCore ..[#1565C0]..> ScgServer : forward operation\n(out of process)
+
+SCGIntegration -[#1565C0]-> SCGResolveMergeConflictWorkflow : start()
+SCGResolveMergeConflictWorkflow -[#1565C0]-> SCGRequestFactory : createRequestResolveMergeConflict(user, json)
+SCGResolveMergeConflictWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGService -[#1565C0]-> SCGResolveMergeConflictRequest : execute()
+SCGResolveMergeConflictRequest -[#1565C0]-> SCGConnectorAPIInterface : resolveMergeConflict(user, request, error)
+SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
+
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : resolveMergeConflict(user, request, error)
+DataManagerInterface <|.. DataManagerImpl
+
+ConnectionManager -[#1565C0]-> Stub : gRPC\nresolveMergeConflict()
+Stub -[#1565C0]-> ScgCore : localhost:<grpc_port>
+
+' Optional: conflict detection reads merge details (used by GUI pre-checks)
+SCGIntegration ..[#1565C0]..> SCGRequestFactory : createRequestGetCollectionMergeDetails(user, collectionId)
+SCGService ..[#1565C0]..> SCGGetCollectionMergeDetailsRequest : execute()
+SCGGetCollectionMergeDetailsRequest ..[#1565C0]..> SCGConnectorAPIInterface : getCollectionMergeDetails(...)
+ConnectionManager ..[#1565C0]..> Stub : gRPC\ngetCollectionMergeDetails()
+
+' Build-time / API-level dependencies (CMake targets)
+GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
+DataManagerImpl ..[#6B6B6B]..> mlm_proto
+DataManagerImpl ..[#6B6B6B]..> scg_base
+
+note right of SCGResolveMergeConflictRequest
+  SCGResolveMergeConflictRequest parses the UX JSON and builds
+  a CollectionConflictResolutionRequest + list of ConflictResolutionRequest.
+
+  The request is then executed through:
+  sysdm_service -> connector API -> data manager -> gRPC stub -> SCG Core.
+end note
+
+@enduml

@@ -1,0 +1,169 @@
+@startuml scg_commit_and_push_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+left to right direction
+
+' Encourage stable left-to-right placement of the big groups
+gui_amesim_gui -[hidden]-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_data_display" as P_display {
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    abstract class SCGWorkflow
+    class SCGCommitAndPushWorkflow
+    class SCGAnswer
+
+    class SCGUXMessenger
+    class SCGFileDialogWrapper
+
+    SCGCommitAndPushWorkflow -|> SCGWorkflow
+    SCGCommitAndPushWorkflow o-- SCGAnswer : answers
+
+    SCGIntegration *-- SCGUXMessenger
+  }
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class SCGConfig
+
+    abstract class SCGRequest
+    class "SysDMRequestFactory" as SCGRequestFactory
+    class SCGCommitAndPushRequest
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGCommitAndPushRequest -|> SCGRequest
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "scg_base" as P_scg_base {
+    class scg_base <<cmake target>>
+    class MLMConfig
+    scg_base o-- MLMConfig
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
+    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
+    mlm_proto o-- MLMGeneratedProto
+  }
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG configuration" as P_scg_config {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+    class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
+    class "$HOME/.Simcenter/.scg/config" as ScgConfigDirLnx <<Linux path>>
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+  }
+
+  package "Local SCG UX" as P_scg_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+  }
+
+  package "Remote SCG Server" as P_remote_scg {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =============================================
+' Commit & Push workflow (external-git collection)
+' =============================================
+
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : upload()\n(virtual)
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : launchCommitDialog()\n(external git)
+
+SCGFileDialogWrapper -[#1565C0]-> SCGIntegration : commitAndPush(...)
+SCGIntegration -[#1565C0]-> SCGCommitAndPushWorkflow : create + start
+
+SCGCommitAndPushWorkflow -[#1565C0]-> SCGRequestFactory : createRequestCommitAndPush(...)
+SCGCommitAndPushWorkflow -[#1565C0]-> SCGService : dispatches requests
+SCGCommitAndPushWorkflow ..[#1565C0]..> SCGCommitAndPushRequest
+SCGService -[#1565C0]-> SCGRequest : execute()
+
+SCGRequest -[#1565C0]-> SCGConnectorAPIInterface : commitAndPush(...)
+SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
+
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : commitAndPush(...)
+DataManagerInterface <|.. DataManagerImpl
+
+ConnectionManager -[#1565C0]-> Stub : commitAndPush()\n<- response
+Stub -[#1565C0]-> ScgCore : gRPC commitAndPush()\nlocalhost:<grpc_port>
+
+' SCG Core may relay to a remote SCG server (Amesim does not call it directly)
+ScgCore ..[#1565C0]..> ScgServer : commit/push\n(out of process)
+
+' Build-time / API-level dependencies (CMake targets)
+DataManagerImpl ..[#6B6B6B]..> scg_base
+DataManagerImpl ..[#6B6B6B]..> mlm_proto
+GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
+
+' =====================================
+' Local port + URL resolution (config)
+' =====================================
+
+MLMConfig -[#1565C0]-> ScgConfigProperties : reads tokens\nworkflow_port / server_port / grpc_port
+ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
+ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+
+ConnectionManager -up[#1565C0]-> MLMConfig : GetScgGrpcPort(); check localhost port
+SCGConfig -up[#1565C0]-> MLMConfig : GetScgWorkflowPort()
+SCGConfig -right[#1565C0]-> ScgUx : loads embedded web UI
+
+note right of ScgUx
+  This arrow means: Amesim computes the UX URL (using workflow_port
+  read via MLMConfig from scg_config.properties) and loads it in a
+  QWebEngineView.
+
+  It is not a runtime/library dependency of the SCG UX app on MLMConfig.
+end note
+
+note right of SCGCommitAndPushWorkflow
+  Responses/errors propagate back via SCGAnswer objects.
+end note
+
+@enduml
