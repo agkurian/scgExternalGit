@@ -12,6 +12,7 @@ skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 240
 hide empty members
 
 legend right
@@ -29,11 +30,13 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   package "sim_data_display" as P_sim_data_display {
     class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
     class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
+    class "SIMSCGCollectionLibraryViewerWidget" as SIMSCGCollectionLibraryViewerWidget
 
     class SCGUXMessenger
     class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
 
     SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
 
     SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : messageReceived
     SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_RESOLVE_CONFLICT
@@ -50,7 +53,7 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
 
     SCGIntegration *-- SCGUXMessenger
 
-    SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(...)
+    SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(...)
     SCGIntegration -[#1565C0]-> SCGResolveMergeConflictWorkflow : create + executeSCGWorkflow()
   }
 
@@ -58,6 +61,10 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     class SCGFileDialogWrapper
     SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : getSaveModelAgainWrapperDialog()
   }
+
+  ' Encourage stable ordering within this group
+  P_sim_data_display -[hidden]down-> P_sysdm
+  P_sysdm -[hidden]down-> P_dialogs
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
@@ -141,9 +148,21 @@ SCGIntegration -[#1565C0]-> SCGUXMessenger : returns messenger instance
 
 ScgUx -[#1565C0]-> SCGUXMessenger : websocket message
 SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : slotOnUxMessengerMessageReceived(message)
-SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : initiateSCGUXWorkflow(message)
-SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : resolveMergeConflict(message)
+
+' Base widget routes message based on clientId
+note right of SIMSCGCollectionViewerWidget
+  slotOnUxMessengerMessageReceived(message) routes by message.clientId:
+  - CLIENT_ID_MODEL_VIEWER   -> modelViewerMessageReceived(message)
+  - CLIENT_ID_LIBRARY_VIEWER -> libraryViewerMessageReceived(message)
+end note
+
+' Model viewer path: supported
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : handle resolve-conflict (supported)
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(wrapper, message, error)
+
+' Library viewer path: NOT supported (request is rejected)
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : handle resolve-conflict (rejected)
+SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : showNewC4GServerFeatureNotSupported("unsupported request")
 
 ' Resolve actions apply to the currently configured/active server session.
 ScgCore ..[#1565C0]..> ServerStore : read configured servers\n(active selection/session)

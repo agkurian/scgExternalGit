@@ -32,6 +32,7 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   package "sim_data_display" as P_sim_data_display {
     class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
     class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
+    class "SIMSCGCollectionLibraryViewerWidget" as SIMSCGCollectionLibraryViewerWidget
 
     class SCGUXMessenger
     class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
@@ -40,6 +41,7 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     class "QWebEngineProfile" as QWebEngineProfile
 
     SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+  SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
     SIMSCGCollectionViewerWidget o-- QWebEngineView
     QWebEngineView -[#6B6B6B]-> QWebEngineProfile
 
@@ -105,6 +107,13 @@ SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : launchC
 ' For model collections, Amesim saves dirty state before diff/merge
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMDocumentManagerInterface : active circuit + dirty flag
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMEditor : saveToSCGWorkspace(collection_path)
+
+' For library collections, no document save is involved (tool launch only)
+note right of SIMSCGCollectionLibraryViewerWidget
+  Library collection editor uses the same UX message and tool-launch logic
+  (launchCompareOrMergeTool -> launchConfiguredTools -> COMProcess), but does
+  not run the model document save flow.
+end note
 
 ' Tool selection is driven by the UX message payload
 note right of SIMSCGCollectionViewerWidget

@@ -30,8 +30,10 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   package "sim_data_display" as P_display {
     class SIMSCGCollectionViewerWidget
     class SIMSCGModelCollectionViewerWidget
+    class SIMSCGCollectionLibraryViewerWidget
 
     SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
   }
 
   package "sysdm_integration" as P_sysdm {
@@ -39,21 +41,30 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     abstract class SCGWorkflow
 
     class SCGSyncCollectionWorkflow
+    class SCGSyncLibraryCollectionWorkflow
     abstract class SCGAccessModelWorkflow
 
     class SCGFileDialogWrapper
     class "ModelManagementSupportInterface" as ModelManagementSupportInterface
 
     SCGSyncCollectionWorkflow -|> SCGAccessModelWorkflow
+    SCGSyncLibraryCollectionWorkflow -|> SCGSyncCollectionWorkflow
     SCGAccessModelWorkflow -|> SCGWorkflow
 
     SCGIntegration o-- ModelManagementSupportInterface
   }
 
-  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
+  ' Trigger can be either model or library collection editor
   SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : sync()\n(virtual)
+  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : sync()\n(virtual)
+
+  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
   SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : prepareSyncCollection(...)
   SCGIntegration -[#1565C0]-> SCGSyncCollectionWorkflow : create + executeSCGWorkflow()
+
+  SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
+  SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGIntegration : prepareLibrarySyncCollection(...)
+  SCGIntegration -[#1565C0]-> SCGSyncLibraryCollectionWorkflow : create + start()
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {

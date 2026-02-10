@@ -28,8 +28,10 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   package "sim_data_display" as P_display {
     class SIMSCGCollectionViewerWidget
     class SIMSCGModelCollectionViewerWidget
+    class SIMSCGCollectionLibraryViewerWidget
 
     SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
   }
 
   package "sysdm_integration" as P_sysdm {
@@ -113,6 +115,11 @@ package "External / Third-party" as external_third_party {
 ' =============================================
 ' Commit & Push workflow (external-git collection)
 ' =============================================
+
+note top of SIMSCGCollectionViewerWidget
+  The "Upload" UX action exists in both the model and library collection editors.
+  Commit&Push is the external-git branch of the model viewer's upload() implementation.
+end note
 
 SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : upload()\n(virtual)
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : launchCommitDialog()\n(external git)

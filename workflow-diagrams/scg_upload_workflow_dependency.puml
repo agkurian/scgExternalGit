@@ -29,8 +29,10 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   package "sim_data_display" as P_display {
     class SIMSCGCollectionViewerWidget
     class SIMSCGModelCollectionViewerWidget
+    class SIMSCGCollectionLibraryViewerWidget
 
     SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
   }
 
   package "sim_dialogs" as P_dialogs {
@@ -41,12 +43,16 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     class "scg::SCGIntegration" as SCGIntegration
     abstract class SCGWorkflow
     class SCGPublishCollectionWorkflow
+    class SCGSaveLibraryWorkflow
+    class SCGPublishLibraryAgainWorkflow
     class SCGAnswer
 
     class SCGUXMessenger
     class SCGFileDialogWrapper
 
     SCGPublishCollectionWorkflow -|> SCGWorkflow
+  SCGSaveLibraryWorkflow -|> SCGWorkflow
+  SCGPublishLibraryAgainWorkflow -|> SCGSaveLibraryWorkflow
     SCGPublishCollectionWorkflow o-- SCGAnswer : answers
 
     SCGIntegration *-- SCGUXMessenger
@@ -144,13 +150,21 @@ package "External / Third-party" as external_third_party {
 ' Upload publish workflow dependencies
 ' =====================================
 
-' Entry (one common UI path): Web UX “Upload” -> open dialog that hosts publish widget
+' Entry (common): Web UX “Upload” -> virtual upload() on the active viewer
 SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : upload()\n(virtual)
+SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : upload()\n(virtual)
+
+' Model viewer: upload leads to SaveModelAgain dialog (non-external)
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : launchSaveModelAgainDialog()\n(non-external)
 
 ' Publish widget triggers upload/publish
 SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : publishModel(...)
 SCGIntegration -[#1565C0]-> SCGPublishCollectionWorkflow : create + start
+
+' Library viewer: upload leads to SaveLibraryAgain flow
+SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGFileDialogWrapper : saveLibraryAgain()
+SCGFileDialogWrapper -[#1565C0]-> SCGIntegration : saveLibraryToSCGAgain(...)
+SCGIntegration -[#1565C0]-> SCGPublishLibraryAgainWorkflow : create + executeSCGWorkflow()
 
 ' Workflow drives a sequence of requests through sysdm_service
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : creates request objects
@@ -160,6 +174,10 @@ SCGPublishCollectionWorkflow ..[#1565C0]..> SCGSetServerMetaDataRequest
 SCGPublishCollectionWorkflow ..[#1565C0]..> SCGGetServerMetaDataRequest
 SCGPublishCollectionWorkflow ..[#1565C0]..> SCGSaveCollectionRequest
 SCGService -[#1565C0]-> SCGRequest : execute()
+
+' Library publish-again uses the same sysdm_service request chain
+SCGPublishLibraryAgainWorkflow -[#1565C0]-> SCGRequestFactory : creates request objects
+SCGPublishLibraryAgainWorkflow -[#1565C0]-> SCGService : dispatches requests
 
 ' Requests call into the connector API and down into gRPC
 SCGRequest -[#1565C0]-> SCGConnectorAPIInterface : delegates to API\n(createOrEditCollection,\n setServerMetadata,\n getServerMetadata,\n saveCollection)
