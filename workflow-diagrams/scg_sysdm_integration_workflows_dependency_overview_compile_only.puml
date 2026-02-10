@@ -1,0 +1,180 @@
+@startuml scg_sysdm_integration_workflows_dependency_overview_compile_only
+' Compile/link-time workflow inventory for SCG SysDM integration (no runtime arrows)
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 28
+skinparam ranksep 30
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 260
+hide empty members
+
+legend right
+  <color:#6B6B6B>Gray dashed</color> : compile-time dependency / link / uses
+endlegend
+
+left to right direction
+
+package "gui/amesim_suite/amesim_gui/sysdm_integration" as P_sysdm_integration {
+  class "scg::SCGIntegration" as SCGIntegration
+
+  abstract class SCGWorkflow
+  abstract class SCGAccessModelWorkflow
+
+  class SCGFileDialogWrapper
+
+  ' Workflows (inventory)
+  class GetAllLocalCollectionsWorkflow
+  class GetAllLocalLibraryCollectionsWorkflow
+  class GetSCGServerListWorkflow
+
+  class SCGLoginWorkflow
+  class SCGLogoutWorkflow
+
+  class SCGGetLoginUserDetailsWorkflow
+  class SCGGetCollectionIdWorkflow
+  class SCGGetExternalGitCollectionsWorkflow
+
+  class SCGGetReferredCollectionsWorkflow
+  class SCGGetChildCollectionsWorkflow
+  class SCGGetContainingCollectionWorkflow
+  class SCGGetCollectionMetainformationDetailsWorkflow
+  class SCGClassificationChildrenWorkflow
+
+  class SCGDownloadCollectionWorkflow
+  class SCGDisposeCollectionWorkflow
+
+  class SCGOpenModelWorkflow
+  class SCGOpenLibraryWorkflow
+
+  class SCGSaveModelWorkflow
+  class SCGSaveModelAgainWorkflow
+
+  class SCGSaveLibraryWorkflow
+  class SCGPublishLibraryAgainWorkflow
+
+  class SCGPublishCollectionWorkflow
+  class SCGSyncCollectionWorkflow
+  class SCGSyncLibraryCollectionWorkflow
+
+  class SCGMergeFromBranchWorkflow
+  class SCGResolveMergeConflictWorkflow
+  class SCGUpdateToVersionWorkflow
+
+  class SCGSaveCollectionWorkflow
+  class SCGSaveExternalGitCollectionModelWorflow
+
+  class SCGCommitAndPushWorkflow
+
+  ' Base hierarchy
+  SCGAccessModelWorkflow --|> SCGWorkflow
+
+  ' Access-model hierarchy
+  SCGOpenModelWorkflow --|> SCGAccessModelWorkflow
+  SCGOpenLibraryWorkflow --|> SCGOpenModelWorkflow
+
+  SCGSaveModelWorkflow --|> SCGAccessModelWorkflow
+  SCGSaveModelAgainWorkflow --|> SCGSaveModelWorkflow
+
+  SCGSaveLibraryWorkflow --|> SCGAccessModelWorkflow
+  SCGPublishLibraryAgainWorkflow --|> SCGSaveLibraryWorkflow
+
+  SCGSyncCollectionWorkflow --|> SCGAccessModelWorkflow
+  SCGSyncLibraryCollectionWorkflow --|> SCGSyncCollectionWorkflow
+
+  SCGMergeFromBranchWorkflow --|> SCGAccessModelWorkflow
+  SCGResolveMergeConflictWorkflow --|> SCGAccessModelWorkflow
+  SCGUpdateToVersionWorkflow --|> SCGAccessModelWorkflow
+
+  ' Direct SCGWorkflow derivatives
+  GetAllLocalCollectionsWorkflow --|> SCGWorkflow
+  GetAllLocalLibraryCollectionsWorkflow --|> SCGWorkflow
+  GetSCGServerListWorkflow --|> SCGWorkflow
+
+  SCGLoginWorkflow --|> SCGWorkflow
+  SCGLogoutWorkflow --|> SCGWorkflow
+
+  SCGGetLoginUserDetailsWorkflow --|> SCGWorkflow
+  SCGGetCollectionIdWorkflow --|> SCGWorkflow
+  SCGGetExternalGitCollectionsWorkflow --|> SCGWorkflow
+
+  SCGGetReferredCollectionsWorkflow --|> SCGWorkflow
+  SCGGetChildCollectionsWorkflow --|> SCGWorkflow
+  SCGGetContainingCollectionWorkflow --|> SCGWorkflow
+  SCGGetCollectionMetainformationDetailsWorkflow --|> SCGWorkflow
+  SCGClassificationChildrenWorkflow --|> SCGWorkflow
+
+  SCGDownloadCollectionWorkflow --|> SCGWorkflow
+  SCGDisposeCollectionWorkflow --|> SCGWorkflow
+
+  SCGPublishCollectionWorkflow --|> SCGWorkflow
+  SCGSaveCollectionWorkflow --|> SCGWorkflow
+  SCGSaveExternalGitCollectionModelWorflow --|> SCGWorkflow
+
+  SCGCommitAndPushWorkflow --|> SCGWorkflow
+
+  ' Key compile-time couplings
+  SCGAccessModelWorkflow ..[#6B6B6B]..> SCGFileDialogWrapper
+
+  ' SCGIntegration depends on the workflow API + concrete workflow types (includes / construction)
+  SCGIntegration ..[#6B6B6B]..> SCGWorkflow : execute
+
+  SCGIntegration ..[#6B6B6B]..> GetAllLocalCollectionsWorkflow
+  SCGIntegration ..[#6B6B6B]..> GetAllLocalLibraryCollectionsWorkflow
+  SCGIntegration ..[#6B6B6B]..> GetSCGServerListWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGLoginWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGLogoutWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGGetLoginUserDetailsWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetCollectionIdWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetExternalGitCollectionsWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGGetReferredCollectionsWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetChildCollectionsWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetContainingCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetCollectionMetainformationDetailsWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGClassificationChildrenWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGDownloadCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGDisposeCollectionWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGOpenModelWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGOpenLibraryWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGSaveModelWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSaveModelAgainWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGSaveLibraryWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGPublishLibraryAgainWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGPublishCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSyncCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSyncLibraryCollectionWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGMergeFromBranchWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGResolveMergeConflictWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGUpdateToVersionWorkflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGSaveCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSaveExternalGitCollectionModelWorflow
+
+  SCGIntegration ..[#6B6B6B]..> SCGCommitAndPushWorkflow
+}
+
+note bottom of P_sysdm_integration
+  Scope:
+  - Inventory of workflow classes under gui/.../sysdm_integration/inc
+  - Compile/link dependencies only (includes/type usage), no runtime messages
+
+  Purpose:
+  - Helps identify what must move together if SCG integration is extracted
+end note
+
+@enduml

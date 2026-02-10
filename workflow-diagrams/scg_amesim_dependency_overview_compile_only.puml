@@ -1,0 +1,258 @@
+@startuml scg_amesim_dependency_overview_compile_only
+' Compile/link-time dependency overview (no runtime arrows)
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 240
+hide empty members
+
+legend right
+  <color:#6B6B6B>Gray dashed</color> : compile-time dependency / link / uses
+endlegend
+
+left to right direction
+
+' Stable group ordering (UI -> Kernel -> SCG adapter -> External libs)
+gui_amesim_gui -[hidden]right-> kernel_amesim
+kernel_amesim -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_third_party
+
+package "kernel/* (Amesim core)" as kernel_amesim {
+  package "kernel/document" as P_kernel_document {
+    class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+    class "doc_mgr::SIMDocument" as SIMDocument
+    class SIMEditor
+  }
+
+  package "kernel/preferences" as P_kernel_preferences {
+    class "SIMPreferences" as KernelSIMPreferences
+  }
+
+  package "kernel shared" as P_kernel_shared {
+    class ame_kernel_shared <<cmake target>>
+  }
+
+  SIMDocumentManagerInterface ..[#6B6B6B]..> SIMDocument
+  SIMEditor ..[#6B6B6B]..> SIMDocumentManagerInterface
+}
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_main_window" as P_main_window {
+    class SIMMainWindow
+    class SIMDownloadModelWidget
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class SIMPreferencesModelMgt
+    class SIMSCGConnectorPublishWidget
+  }
+
+  package "sim_data_display" as P_display {
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+    class SIMSCGCollectionLibraryViewerWidget
+
+    class QWebEngineView
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionViewerWidget o-- QWebEngineView
+  }
+
+  package "sim_gui_circuit_manip" as P_circuit_manip {
+    class SIMCmdSCGGetCollectionMergeDetails
+    class SIMCmdSCGCreateBranchAndSwitch
+  }
+
+  package "sysdm_integration (SCG UI integration)" as P_sysdm_integration {
+    class "scg::SCGIntegration" as SCGIntegration
+    class SCGIntegrationPrivate
+
+    class SCGUXMessenger
+    class SCGFileDialogWrapper
+
+    abstract class SCGWorkflow
+    abstract class SCGAccessModelWorkflow
+
+    class SCGPublishCollectionWorkflow
+    class SCGSyncCollectionWorkflow
+    class SCGResolveMergeConflictWorkflow
+    class SCGCommitAndPushWorkflow
+
+    class SCGMergeFromBranchWorkflow
+    class SCGUpdateToVersionWorkflow
+    class SCGSaveCollectionWorkflow
+    class SCGGetCollectionIdWorkflow
+    class SCGGetExternalGitCollectionsWorkflow
+
+    SCGIntegration *-- SCGIntegrationPrivate
+    SCGIntegration *-- SCGUXMessenger
+
+    ' Workflow hierarchy (compile-time)
+    SCGAccessModelWorkflow --|> SCGWorkflow
+    SCGPublishCollectionWorkflow --|> SCGWorkflow
+    SCGSyncCollectionWorkflow --|> SCGAccessModelWorkflow
+    SCGResolveMergeConflictWorkflow --|> SCGAccessModelWorkflow
+    SCGCommitAndPushWorkflow --|> SCGWorkflow
+    SCGMergeFromBranchWorkflow --|> SCGAccessModelWorkflow
+    SCGUpdateToVersionWorkflow --|> SCGAccessModelWorkflow
+    SCGSaveCollectionWorkflow --|> SCGWorkflow
+    SCGGetCollectionIdWorkflow --|> SCGWorkflow
+    SCGGetExternalGitCollectionsWorkflow --|> SCGWorkflow
+  }
+
+  ' UI -> SCG integration (compile-time)
+  SIMMainWindow ..[#6B6B6B]..> SCGIntegration
+  SIMDownloadModelWidget ..[#6B6B6B]..> SCGIntegration
+
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGIntegration
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGUXMessenger
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper
+
+  SIMSCGConnectorPublishWidget ..[#6B6B6B]..> SCGIntegration
+  SIMPreferencesModelMgt ..[#6B6B6B]..> SCGIntegration
+
+  ' GUI preferences page also depends on kernel preferences storage
+  SIMPreferencesModelMgt ..[#6B6B6B]..> KernelSIMPreferences : kernel prefs (read/write)
+
+  SIMCmdSCGGetCollectionMergeDetails ..[#6B6B6B]..> SCGIntegration
+  SIMCmdSCGCreateBranchAndSwitch ..[#6B6B6B]..> SCGIntegration
+
+  ' SCG integration also uses kernel document API
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMDocumentManagerInterface
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMDocument
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMEditor
+  SCGIntegration ..[#6B6B6B]..> SIMDocumentManagerInterface
+
+  ' Representative workflow ownership
+  SCGIntegration ..[#6B6B6B]..> SCGWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGPublishCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSyncCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGResolveMergeConflictWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGCommitAndPushWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGMergeFromBranchWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGUpdateToVersionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGSaveCollectionWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetCollectionIdWorkflow
+  SCGIntegration ..[#6B6B6B]..> SCGGetExternalGitCollectionsWorkflow
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_api_wrapper" as P_api_wrapper {
+    class sysdm_api_wrapper <<cmake target>>
+  }
+
+  package "sysdm_service" as P_service {
+    class sysdm_service <<cmake target>>
+
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    class SCGAnswerWaiter
+
+    abstract class SCGRequest
+    class "SysDMRequests.*" as SysDMRequests
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    sysdm_service o-- SCGService
+    sysdm_service o-- SCGRequestFactory
+    sysdm_service o-- SysDMRequests
+
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    ' Request and service API layering (compile-time)
+    SCGService o-- SCGConnectorAPIInterface
+    SysDMRequests --|> SCGRequest
+    SCGService ..[#6B6B6B]..> SCGRequest
+    SCGService ..[#6B6B6B]..> SCGAnswerWaiter
+    SCGRequest ..[#6B6B6B]..> SCGService
+  }
+
+  package "mlm_data_manager" as P_mlm_dm {
+    class mlm_data_manager <<cmake target>>
+
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class ConnectionManager
+    class GrpcCouplingMethods
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "extractor" as P_extractor {
+    class extractor_shared <<cmake target>>
+    class extractor_mapper <<cmake target>>
+  }
+
+  package "protocol/config" as P_proto_cfg {
+    class mlm_proto <<cmake target>>
+    class scg_base <<cmake target>>
+    class MLMConfig
+
+    scg_base o-- MLMConfig
+  }
+
+  ' GUI integration -> adapter boundary
+  SCGIntegration ..[#6B6B6B]..> sysdm_service
+  SCGIntegration ..[#6B6B6B]..> SCGService
+  SCGIntegration ..[#6B6B6B]..> SCGRequestFactory
+  SCGIntegration ..[#6B6B6B]..> SCGAnswerWaiter
+
+  ' Adapter internal links (build-time + API layering)
+  sysdm_service ..[#6B6B6B]..> mlm_data_manager
+  sysdm_service ..[#6B6B6B]..> sysdm_api_wrapper
+  sysdm_service ..[#6B6B6B]..> ame_kernel_shared
+
+  mlm_data_manager ..[#6B6B6B]..> extractor_shared
+  mlm_data_manager ..[#6B6B6B]..> extractor_mapper
+  mlm_data_manager ..[#6B6B6B]..> mlm_proto
+  mlm_data_manager ..[#6B6B6B]..> scg_base
+  mlm_data_manager ..[#6B6B6B]..> ame_kernel_shared
+}
+
+package "External / Third-party (compile/link deps)" as external_third_party {
+  package "Qt" as P_qt {
+    class "Qt WebEngine" as QtWebEngine
+  }
+
+  package "RPC / serialization" as P_rpc {
+    class "gRPC" as GrpcLib
+    class "Protocol Buffers" as ProtobufLib
+  }
+
+  ' Compile-time relationships to third-party libs
+  QWebEngineView ..[#6B6B6B]..> QtWebEngine
+  mlm_data_manager ..[#6B6B6B]..> GrpcLib
+  mlm_proto ..[#6B6B6B]..> ProtobufLib
+}
+
+note bottom of SCGIntegration
+  Isolation target (module boundary hint):
+  - SCGIntegration + workflows + SCGUXMessenger + SCGFileDialogWrapper
+  - sysdm_service + sysdm_api_wrapper + mlm_data_manager (+ extractor, config, proto)
+
+  Coverage note:
+  - This is an overview; it is not a complete inventory of every SCG workflow/class.
+  - Additional workflow headers exist under
+    gui/amesim_suite/amesim_gui/sysdm_integration/inc (e.g. login/logout,
+    open/save model/library, download/dispose collection, server list, etc.).
+
+  This diagram intentionally omits runtime interactions
+  (embedded UX messaging, gRPC traffic, remote server calls).
+end note
+
+@enduml

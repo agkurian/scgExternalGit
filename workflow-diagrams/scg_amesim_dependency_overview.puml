@@ -1,0 +1,229 @@
+@startuml scg_amesim_dependency_overview
+' High-level dependency overview to support isolating SCG-related code
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 240
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : runtime interaction / call
+  <color:#6B6B6B>Gray dashed</color> : compile-time dependency / link / uses
+endlegend
+
+left to right direction
+
+' Stable group ordering (UI -> Kernel -> SCG adapter -> External)
+gui_amesim_gui -[hidden]right-> kernel_amesim
+kernel_amesim -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
+
+package "kernel/* (Amesim core)" as kernel_amesim {
+  package "kernel/document" as P_kernel_document {
+    class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+    class "doc_mgr::SIMDocument" as SIMDocument
+    class SIMEditor
+  }
+
+  package "kernel/preferences" as P_kernel_preferences {
+    class SIMPreferences
+  }
+
+  package "kernel shared" as P_kernel_shared {
+    class ame_kernel_shared <<cmake target>>
+  }
+
+  SIMDocumentManagerInterface ..[#6B6B6B]..> SIMDocument
+  SIMEditor ..[#6B6B6B]..> SIMDocumentManagerInterface
+}
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_main_window" as P_main_window {
+    class SIMMainWindow
+    class SIMDownloadModelWidget
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class SIMPreferencesModelMgt
+    class SIMSCGConnectorPublishWidget
+  }
+
+  package "sim_data_display" as P_display {
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+    class SIMSCGCollectionLibraryViewerWidget
+
+    class QWebEngineView
+
+    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
+    SIMSCGCollectionViewerWidget o-- QWebEngineView
+  }
+
+  package "sim_gui_circuit_manip" as P_circuit_manip {
+    class SIMCmdSCGGetCollectionMergeDetails
+    class SIMCmdSCGCreateBranchAndSwitch
+  }
+
+  package "sysdm_integration (SCG UI integration)" as P_sysdm_integration {
+    class "scg::SCGIntegration" as SCGIntegration
+    class SCGIntegrationPrivate
+
+    class SCGUXMessenger
+    class SCGFileDialogWrapper
+
+    abstract class SCGWorkflow
+
+    SCGIntegration *-- SCGIntegrationPrivate
+    SCGIntegration *-- SCGUXMessenger
+  }
+
+  ' UI -> SCG integration touch points (compile-time)
+  SIMMainWindow ..[#6B6B6B]..> SCGIntegration
+  SIMDownloadModelWidget ..[#6B6B6B]..> SCGIntegration
+
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGIntegration
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGUXMessenger
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper
+
+  SIMSCGConnectorPublishWidget ..[#6B6B6B]..> SCGIntegration
+  SIMPreferencesModelMgt ..[#6B6B6B]..> SCGIntegration
+
+  ' GUI preferences page depends on kernel preferences storage
+  SIMPreferencesModelMgt ..[#6B6B6B]..> SIMPreferences : kernel prefs
+
+  SIMCmdSCGGetCollectionMergeDetails ..[#6B6B6B]..> SCGIntegration
+  SIMCmdSCGCreateBranchAndSwitch ..[#6B6B6B]..> SCGIntegration
+
+  ' SCG integration also uses kernel document API
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMDocumentManagerInterface
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMDocument
+  SIMSCGCollectionViewerWidget ..[#6B6B6B]..> SIMEditor
+  SCGIntegration ..[#6B6B6B]..> SIMDocumentManagerInterface
+
+  ' Representative workflow ownership
+  SCGIntegration ..[#6B6B6B]..> SCGWorkflow
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_api_wrapper" as P_api_wrapper {
+    class sysdm_api_wrapper <<cmake target>>
+  }
+
+  package "sysdm_service" as P_service {
+    class sysdm_service <<cmake target>>
+
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class "SysDMRequests.*" as SysDMRequests
+
+    class SCGConfig
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    sysdm_service o-- SCGService
+    sysdm_service o-- SCGRequestFactory
+    sysdm_service o-- SysDMRequests
+
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm_dm {
+    class mlm_data_manager <<cmake target>>
+
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class ConnectionManager
+    class GrpcCouplingMethods
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "extractor" as P_extractor {
+    class extractor_shared <<cmake target>>
+    class extractor_mapper <<cmake target>>
+  }
+
+  package "protocol/config" as P_proto_cfg {
+    class mlm_proto <<cmake target>>
+    class scg_base <<cmake target>>
+    class MLMConfig
+
+    scg_base o-- MLMConfig
+  }
+
+  ' GUI integration -> adapter boundary (compile-time)
+  SCGIntegration ..[#6B6B6B]..> sysdm_service
+  SCGIntegration ..[#6B6B6B]..> SCGService
+  SCGIntegration ..[#6B6B6B]..> SCGRequestFactory
+
+  ' Adapter internal links (mostly build-time + API layering)
+  sysdm_service ..[#6B6B6B]..> mlm_data_manager
+  sysdm_service ..[#6B6B6B]..> sysdm_api_wrapper
+  sysdm_service ..[#6B6B6B]..> ame_kernel_shared
+
+  mlm_data_manager ..[#6B6B6B]..> extractor_shared
+  mlm_data_manager ..[#6B6B6B]..> extractor_mapper
+  mlm_data_manager ..[#6B6B6B]..> mlm_proto
+  mlm_data_manager ..[#6B6B6B]..> scg_base
+  mlm_data_manager ..[#6B6B6B]..> ame_kernel_shared
+}
+
+package "External / Third-party (SCG system)" as external_scg {
+  package "Local SCG UX" as P_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+  }
+
+  package "Local SCG Core" as P_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+    class "SCG REST API" as ScgRest <<local REST endpoint>>
+  }
+
+  package "Local configuration" as P_conf {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+  }
+
+  package "Remote SCG Server" as P_remote {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' ===============================
+' Representative runtime edges
+' (kept minimal; detailed flows are in the per-workflow diagrams)
+' ===============================
+
+QWebEngineView -[#1565C0]-> ScgUx : loads embedded UI
+ScgUx -[#1565C0]-> SCGUXMessenger : websocket messages
+
+ConnectionManager -[#1565C0]-> Stub : gRPC channel\nlocalhost:<grpc_port>
+Stub -[#1565C0]-> ScgCore : gRPC calls
+ScgCore ..[#1565C0]..> ScgServer : forwards operations\n(out of process)
+
+MLMConfig -[#1565C0]-> ScgConfigProperties : reads workflow_port / server_port / grpc_port
+
+note bottom of SCGIntegration
+  Isolation target (module boundary hint):
+  - SCGIntegration + workflows + SCGUXMessenger + SCGFileDialogWrapper
+  - sysdm_service + sysdm_api_wrapper + mlm_data_manager (+ extractor, config, proto)
+
+  Amesim UI/kernel should ideally depend on a small, stable façade API here.
+end note
+
+@enduml
