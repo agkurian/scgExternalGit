@@ -1,0 +1,158 @@
+@startuml scg_create_library_collection_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 28
+skinparam ranksep 32
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 240
+hide empty members
+
+top to bottom direction
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_suite -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_third_party
+
+package "gui/amesim_suite" as gui_amesim_suite {
+  package "common_gui/category_manip" as P_common_cat {
+    class COMPathListDialog
+  }
+
+  package "amesim_gui/category_manip" as P_amesim_cat {
+    class SIMPathListDialog
+  }
+
+  package "amesim_gui/sim_main_window" as P_mainwin {
+    class SIMMainWindow
+  }
+
+  package "amesim_gui/sysdm_integration" as P_sysdm_gui {
+    class "SCGFileDialogWrapper (DialogType::SAVE_LIBRARY_DLG)" as SaveLibraryDlg
+    class "scg::SCGIntegration" as SCGIntegration
+
+    abstract class SCGWorkflow
+    class SCGSaveLibraryWorkflow
+    class SCGPublishCollectionWorkflow
+
+    class "SIMSCGConnectorPublishWidget" as PublishWidget
+
+    SCGSaveLibraryWorkflow -|> SCGWorkflow
+    SCGPublishCollectionWorkflow -|> SCGWorkflow
+
+    SaveLibraryDlg *-- PublishWidget
+  }
+
+  SIMPathListDialog -|> COMPathListDialog
+
+  ' Entry: context menu action in PathList dialog
+  SIMPathListDialog -[#1565C0]-> COMPathListDialog : slotUploadManagedLib()
+  COMPathListDialog -[#1565C0]-> SIMMainWindow : signalUploadManagedLib(library_path)
+  SIMMainWindow -[#1565C0]-> SaveLibraryDlg : getSCGSaveLibraryFileDialogWrapper(library_element)
+  SIMMainWindow -[#1565C0]-> SaveLibraryDlg : saveLibrary() + exec()
+
+  SaveLibraryDlg -[#1565C0]-> SCGIntegration : saveLibraryToSCG(wrapper, library_path, ...)
+  SCGIntegration -[#1565C0]-> SCGSaveLibraryWorkflow : initWorkFlow() + executeSCGWorkflow()
+
+  ' Publish UI step (user clicks "Create Collection")
+  SCGSaveLibraryWorkflow -[#1565C0]-> PublishWidget : update()
+  PublishWidget -[#1565C0]-> SCGIntegration : publishLibrary(wsPath->name, metaInfo, libPath, first_publish=true)
+  SCGIntegration -[#1565C0]-> SCGPublishCollectionWorkflow : executeSCGWorkflow()
+
+  ' Encourage stable ordering within this group
+  P_common_cat -[hidden]down-> P_amesim_cat
+  P_amesim_cat -[hidden]down-> P_mainwin
+  P_mainwin -[hidden]down-> P_sysdm_gui
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGGetAllCollectionRequest
+    class SCGGetCEAStringRequest
+    class SCGSetServerMetaDataRequest
+    class SCGGetServerMetaDataRequest
+    class SCGSaveCollectionRequest
+
+    class SCGAnswer
+
+    SCGGetAllCollectionRequest -|> SCGRequest
+    SCGGetCEAStringRequest -|> SCGRequest
+    SCGSetServerMetaDataRequest -|> SCGRequest
+    SCGGetServerMetaDataRequest -|> SCGRequest
+    SCGSaveCollectionRequest -|> SCGRequest
+
+    SCGService o-- SCGRequestFactory
+
+    ' Layout: keep title readable by pushing content down
+    SCGService -[hidden]down-> SCGRequestFactory
+    SCGRequestFactory -[hidden]down-> SCGGetAllCollectionRequest
+    SCGGetAllCollectionRequest -[hidden]down-> SCGGetCEAStringRequest
+    SCGGetCEAStringRequest -[hidden]down-> SCGSetServerMetaDataRequest
+    SCGSetServerMetaDataRequest -[hidden]down-> SCGGetServerMetaDataRequest
+    SCGGetServerMetaDataRequest -[hidden]down-> SCGSaveCollectionRequest
+  }
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG Core" as P_scg_core {
+    class "SCG Core gRPC endpoint" as SCGCoreGrpc
+    class Stub <<gRPC stub>>
+
+    SCGCoreGrpc : host=localhost
+    SCGCoreGrpc : port=<grpc_port>
+
+    Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
+  }
+}
+
+' =====================================
+' SCGSaveLibraryWorkflow: pre-flight gate
+' =====================================
+
+SCGSaveLibraryWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+SCGSaveLibraryWorkflow ..[#6B6B6B]..> SCGGetAllCollectionRequest : uses
+SCGGetAllCollectionRequest -[#1565C0]-> Stub
+
+' =====================================
+' PublishLibrary: create/edit + metadata + save
+' =====================================
+
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+SCGPublishCollectionWorkflow ..[#6B6B6B]..> SCGGetCEAStringRequest : uses
+SCGPublishCollectionWorkflow ..[#6B6B6B]..> SCGSetServerMetaDataRequest : uses
+SCGPublishCollectionWorkflow ..[#6B6B6B]..> SCGGetServerMetaDataRequest : uses
+SCGPublishCollectionWorkflow ..[#6B6B6B]..> SCGSaveCollectionRequest : uses
+
+SCGGetCEAStringRequest -[#1565C0]-> Stub
+SCGSetServerMetaDataRequest -[#1565C0]-> Stub
+SCGGetServerMetaDataRequest -[#1565C0]-> Stub
+SCGSaveCollectionRequest -[#1565C0]-> Stub
+
+note bottom of SIMPathListDialog
+  UI trigger (Path list dialog):
+  - User-defined library -> toolbutton menu
+  - Action: "Create Collection for Client for Git"
+  - Calls COMPathListDialog::slotUploadManagedLib()
+
+  This workflow creates (publishes) an SCG library collection.
+  Opening the Library collection editor is a separate action:
+  "Open in collection editor".
+end note
+
+@enduml

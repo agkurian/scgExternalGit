@@ -1,0 +1,116 @@
+@startuml scg_merge_details_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+hide empty members
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+left to right direction
+
+' Encourage stable left-to-right placement of the big groups
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_dialogs" as P_dialogs {
+    class SIMSCGConnectorPublishWidget
+  }
+
+  package "sim_gui_circuit_manip" as P_circuit_manip {
+    class SIMCmdSCGGetCollectionMergeDetails
+    class SIMMainWindow
+
+    SIMCmdSCGGetCollectionMergeDetails ..[#6B6B6B]..> SIMMainWindow : getMainWindow()
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "scg::SCGIntegration" as SCGIntegration
+    class SCGAnswerWaiter
+
+    SIMMainWindow ..[#6B6B6B]..> SCGIntegration : getSCGIntegration()
+  }
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+
+    class SCGGetCollectionMergeDetailsRequest
+    class SCGGetCollectionMergeDetailsResponse
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGGetCollectionMergeDetailsRequest -|> SCGRequest
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    ' Local ordering to keep arrows off the package title
+    SCGService -[hidden]down-> SCGRequestFactory
+    SCGRequestFactory -[hidden]down-> SCGGetCollectionMergeDetailsRequest
+    SCGGetCollectionMergeDetailsRequest -[hidden]down-> SCGConnectorAPIInterface
+    SCGConnectorAPIInterface -[hidden]down-> GITConnectorAPIImpl
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> ConnectionManager
+  }
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG Core" as P_scg_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+  }
+
+  package "Remote SCG Server" as P_remote_scg {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =====================================
+' Merge details (GetCollectionMergeDetails)
+' =====================================
+
+' GUI usage: publish widget checks if a merge is in progress
+SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : getCollectionMergeDetails(collectionId,\nmergeDetailsOutput, errorMsg)
+
+' Test/automation usage via plugin command
+SIMCmdSCGGetCollectionMergeDetails -[#1565C0]-> SCGIntegration : getCollectionMergeDetails(collectionId,\nmergeDetailsOutput, errorMsg)
+
+SCGIntegration -[#1565C0]-> SCGRequestFactory : createRequestGetCollectionMergeDetails(userId, collectionId)
+SCGIntegration -[#1565C0]-> SCGService : dispatchRequest()
+SCGIntegration -[#1565C0]-> SCGAnswerWaiter : wait()
+SCGService -[#1565C0]-> SCGRequest : execute()
+
+SCGRequest -[#1565C0]-> SCGConnectorAPIInterface : getCollectionMergeDetails(...)
+GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : getCollectionMergeDetails(...)
+ConnectionManager -[#1565C0]-> Stub : getCollectionMergeDetails()
+Stub -[#1565C0]-> ScgCore : gRPC call\nlocalhost:<grpc_port>
+
+' SCG Core may relay to the remote SCG server (Amesim does not call it directly)
+ScgCore ..[#1565C0]..> ScgServer : merge-details (out of process)
+
+@enduml

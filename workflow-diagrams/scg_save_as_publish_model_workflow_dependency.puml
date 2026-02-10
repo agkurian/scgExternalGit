@@ -1,0 +1,243 @@
+@startuml scg_save_as_publish_model_workflow_dependency
+' Pure class diagram: stable rendering in VS Code PlantUML preview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 35
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam wrapWidth 240
+hide empty members
+
+top to bottom direction
+
+legend right
+  <color:#1565C0>Blue</color> : workflow / message / call
+  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+endlegend
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_third_party
+
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+  package "sim_main_window" as P_main_window {
+    class SIMMainWindow
+    class SIMSketchWindow
+  }
+
+  package "sim_gui_circuit_manip" as P_editor {
+    class SIMEditor
+  }
+
+  package "sysdm_integration" as P_sysdm {
+    class "SCGFileDialogWrapper" as SCGFileDialogWrapper
+    class "QTabWidget" as QTabWidget
+
+    class "scg::SCGIntegration" as SCGIntegration
+
+    abstract class SCGWorkflow
+    abstract class SCGAccessModelWorkflow
+    class SCGSaveModelWorkflow
+    class SCGPublishCollectionWorkflow
+
+    class "SIMSCGConnectorLoginWidget" as SIMSCGConnectorLoginWidget
+
+    SCGFileDialogWrapper *-- QTabWidget
+    SCGAccessModelWorkflow -|> SCGWorkflow
+    SCGSaveModelWorkflow -|> SCGAccessModelWorkflow
+    SCGPublishCollectionWorkflow -|> SCGWorkflow
+  }
+
+  package "sim_dialogs" as P_dialogs {
+    class "SIMSCGConnectorPublishWidget" as SIMSCGConnectorPublishWidget
+  }
+
+  SIMEditor -[#1565C0]-> SCGFileDialogWrapper : createSCGSaveModelDialog(..., SAVE_MODEL_DLG)
+  SIMEditor -[#1565C0]-> SCGFileDialogWrapper : getSaveFileName(...)
+
+  SCGFileDialogWrapper -[#1565C0]-> SCGIntegration : saveModel(wrapper, activeModelPath, ...)
+  SCGIntegration -[#1565C0]-> SCGSaveModelWorkflow : executeSCGWorkflow()
+
+  SCGSaveModelWorkflow -[#1565C0]-> SIMSCGConnectorLoginWidget : checkLogin()
+  SCGSaveModelWorkflow -[#1565C0]-> SIMSCGConnectorPublishWidget : getPublishWidget(PUBLISH_MODEL)
+
+  SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : publishModel(...)
+  SCGIntegration -[#1565C0]-> SCGPublishCollectionWorkflow : executeSCGWorkflow()
+
+  ' Encourage stable ordering within this group
+  P_main_window -[hidden]down-> P_editor
+  P_editor -[hidden]down-> P_sysdm
+  P_sysdm -[hidden]down-> P_dialogs
+}
+
+' Entry-point delegation (declared after all classes to avoid forward references)
+SIMMainWindow -[#1565C0]-> SIMSketchWindow : slotSaveAs()
+SIMSketchWindow -[#1565C0]-> SIMEditor : saveAs()
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+    class SCGAnswer
+
+    class SCGGetAllCollectionRequest
+    class SCGGetAllCollectionAnswer
+
+    class SCGGetCEAStringRequest
+    class SCGGetCEAStringAnswer
+
+    class SCGSetServerMetaDataRequest
+    class SCGSetServerMetaDataResponse
+
+    class SCGGetServerMetaDataRequest
+    class SCGGetServerMetaDataResponse
+
+    class SCGSaveCollectionRequest
+    class SCGSaveCollectionAnswer
+
+    interface SCGConnectorAPIInterface
+    class GITConnectorAPIImpl
+
+    SCGGetAllCollectionRequest -|> SCGRequest
+    SCGGetCEAStringRequest -|> SCGRequest
+    SCGSetServerMetaDataRequest -|> SCGRequest
+    SCGGetServerMetaDataRequest -|> SCGRequest
+    SCGSaveCollectionRequest -|> SCGRequest
+
+    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+
+    SCGService o-- SCGRequestFactory
+    SCGService o-- SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class GrpcCouplingMethods
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
+    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+  }
+
+  package "scg_base" as P_scg_base {
+    class MLMConfig
+  }
+
+  GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
+  DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
+
+  ' Encourage stable ordering within this group
+  P_service -[hidden]down-> P_mlm
+  P_mlm -[hidden]down-> P_scg_base
+}
+
+package "External / Third-party" as external_third_party {
+  package "Local SCG configuration" as P_scg_config {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+    class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
+    class "$HOME/.Simcenter/.scg/config" as ScgConfigDirLnx <<Linux path>>
+  }
+
+  package "Local SCG Core" as P_scg_core {
+    class "SCG Core gRPC endpoint" as SCGCoreGrpc
+    class Stub <<gRPC stub>>
+
+    SCGCoreGrpc : host=localhost
+    SCGCoreGrpc : port=<grpc_port>
+  }
+
+  ' Encourage stable ordering within this group
+  P_scg_config -[hidden]down-> P_scg_core
+}
+
+' =====================================
+' Save As -> Client for Git tab -> publish new model collection
+' =====================================
+
+' Save-model workflow pre-check: ensure ws path not already used
+SCGSaveModelWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetAllCollection()
+SCGRequestFactory -[#1565C0]-> SCGGetAllCollectionRequest
+SCGSaveModelWorkflow -[#1565C0]-> SCGService : dispatchRequest(); wait
+
+SCGGetAllCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : getAllCollections()
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+
+' Publish workflow: create/edit collection, set metadata, save
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCEAJsonString(artifact, user, map, ...)
+SCGRequestFactory -[#1565C0]-> SCGGetCEAStringRequest
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGGetCEAStringRequest -[#1565C0]-> SCGConnectorAPIInterface : createOrEditCollection(...)
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestSetServerMetaData(meta)
+SCGRequestFactory -[#1565C0]-> SCGSetServerMetaDataRequest
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGSetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : setServerMetadata(...)
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetServerMetaData(collectionIds)
+SCGRequestFactory -[#1565C0]-> SCGGetServerMetaDataRequest
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGGetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : getServerMetaData(...)
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestSaveCollection(user, details)
+SCGRequestFactory -[#1565C0]-> SCGSaveCollectionRequest
+SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
+
+SCGSaveCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : saveCollection(...)
+SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+
+' gRPC coupling
+ConnectionManager -[#1565C0]-> Stub : CreateChannel("localhost:<grpc_port>")
+Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
+
+MLMConfig -[#1565C0]-> ScgConfigProperties : reads workflow_port / server_port / grpc_port
+ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
+ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+
+note bottom of SCGFileDialogWrapper
+  File -> Save As entry points:
+  1) SIMMainWindow::slotSaveAs()
+  2) SIMSketchWindow::saveCircuitAs()
+  3) SIMEditor::saveAs() -> SCG-enabled dialog (SAVE_MODEL_DLG)
+
+  - Local tab: pick a new .ame path (classic Save As)
+  - Client for Git tab: publish the current model as a new SCG collection
+
+  The SCG workflow is triggered when the user switches to
+  the "Client for Git" tab (tabWidget::currentChanged).
+end note
+
+note bottom of SCGSaveModelWorkflow
+  SCGSaveModelWorkflow gates publishing:
+  - Disables publishing if the model is still "first save" (unnamed/unsaved)
+  - Checks whether the model workspace path is already used by an existing collection
+    via GetAllCollections.
+end note
+
+note bottom of SCGPublishCollectionWorkflow
+  SCGPublishCollectionWorkflow publishes a new collection version by:
+  1) createOrEditCollection (server-side collection creation/update)
+  2) setServerMetadata (branch + classification + comments)
+  3) saveCollection (upload)
+
+  UI entry point is SIMSCGConnectorPublishWidget::slotPublishCollection().
+end note
+
+@enduml

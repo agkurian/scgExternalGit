@@ -203,11 +203,14 @@ note bottom of QWebEngineView
   http://localhost:<workflow_port>/ClientForGit/index.html#...
 end note
 
-note bottom
+note bottom of SIMMainWindow
   User opens a .ame file
   1) slotOpenAmeFile() -> openCircuitFile()
   2) document becomes active (slotActiveChanged)
   3) updateSCGCollectionViewerWidget() shows/hides SCG dock
+
+  Download-from-SCG-tab (File->Open -> SCG tab) is modeled separately:
+  - scg_download_open_model_workflow_dependency.puml
 
   External Git / external-server collections:
   - Use the same open-viewer workflow (same dock + embedded UX)

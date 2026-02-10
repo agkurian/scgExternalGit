@@ -189,7 +189,7 @@ MLMConfig -[#1565C0]-> ScgConfigProperties : reads tokens\nworkflow_port / serve
 ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
 ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
 
-note bottom
+note bottom of SIMPathListDialog
   Entry point (Library collection editor):
   - SIMPathListDialog::slotOpenCollectionViewer() builds COMDockWindow
   - setupLibraryViewer() loads embedded SCG UX URL
