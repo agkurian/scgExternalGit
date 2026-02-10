@@ -10,6 +10,8 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -17,6 +19,7 @@ hide empty members
 
 legend right
   <color:#6B6B6B>Gray dashed</color> : compile-time dependency / link / uses
+  Beige package : outside Amesim source code
 endlegend
 
 left to right direction
@@ -24,7 +27,7 @@ left to right direction
 ' Stable group ordering (UI -> Kernel -> SCG adapter -> External libs)
 gui_amesim_gui -[hidden]right-> kernel_amesim
 kernel_amesim -[hidden]right-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]right-> external_third_party
+transverse_scg_adapter -[hidden]right-> external_outside_amesim
 
 package "kernel/* (Amesim core)" as kernel_amesim {
   package "kernel/document" as P_kernel_document {
@@ -224,20 +227,41 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   mlm_data_manager ..[#6B6B6B]..> ame_kernel_shared
 }
 
-package "External / Third-party (compile/link deps)" as external_third_party {
-  package "Qt" as P_qt {
-    class "Qt WebEngine" as QtWebEngine
+package "External (outside Amesim source)" <<external>> as external_outside_amesim {
+  package "External / Third-party (compile/link deps)" as external_third_party {
+    package "Qt" as P_qt {
+      class "Qt WebEngine" as QtWebEngine
+    }
+
+    package "RPC / serialization" as P_rpc {
+      class "gRPC" as GrpcLib
+      class "Protocol Buffers" as ProtobufLib
+    }
+
+    ' Compile-time relationships to third-party libs
+    QWebEngineView ..[#6B6B6B]..> QtWebEngine
+    mlm_data_manager ..[#6B6B6B]..> GrpcLib
+    mlm_proto ..[#6B6B6B]..> ProtobufLib
   }
 
-  package "RPC / serialization" as P_rpc {
-    class "gRPC" as GrpcLib
-    class "Protocol Buffers" as ProtobufLib
-  }
+  package "External SCG system (runtime context only)" as external_scg_system {
+    package "Local SCG UX" as P_scg_ux {
+      class "SCG UX" as ScgUx <<local web app>>
+    }
 
-  ' Compile-time relationships to third-party libs
-  QWebEngineView ..[#6B6B6B]..> QtWebEngine
-  mlm_data_manager ..[#6B6B6B]..> GrpcLib
-  mlm_proto ..[#6B6B6B]..> ProtobufLib
+    package "Local SCG Core" as P_scg_core {
+      class "SCG Core" as ScgCore <<local gRPC endpoint>>
+      class "SCG REST API" as ScgRest <<local REST endpoint>>
+    }
+
+    package "Remote SCG Server" as P_scg_remote {
+      class "SCG Server" as ScgServer <<remote>>
+    }
+
+    package "Local configuration" as P_scg_conf {
+      class "scg_config.properties" as ScgConfigProperties <<config file>>
+    }
+  }
 }
 
 note bottom of SCGIntegration
@@ -251,8 +275,8 @@ note bottom of SCGIntegration
     gui/amesim_suite/amesim_gui/sysdm_integration/inc (e.g. login/logout,
     open/save model/library, download/dispose collection, server list, etc.).
 
-  This diagram intentionally omits runtime interactions
-  (embedded UX messaging, gRPC traffic, remote server calls).
+  This diagram intentionally omits runtime interactions (arrows).
+  The "External SCG system" block is shown for context only.
 end note
 
 @enduml

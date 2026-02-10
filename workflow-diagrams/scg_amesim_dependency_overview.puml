@@ -10,6 +10,8 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -184,7 +186,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   mlm_data_manager ..[#6B6B6B]..> ame_kernel_shared
 }
 
-package "External / Third-party (SCG system)" as external_scg {
+package "External / Third-party (SCG system)" <<external>> as external_scg {
   package "Local SCG UX" as P_ux {
     class "SCG UX" as ScgUx <<local web app>>
   }

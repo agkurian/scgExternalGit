@@ -17,7 +17,7 @@ hide empty members
 legend right
   <color:#2E7D32>Green</color> : publish workflow path
   <color:#1565C0>Blue</color> : commit&push workflow path
-  <color:#7B1FA2>Purple</color> : shared workflow steps
+  <color:#7B1FA2>Purple</color> : shared runtime infrastructure (created regardless of workflow)
   <color:#6B6B6B>Gray dashed</color> : dependency / uses (static)
 endlegend
 
@@ -82,11 +82,13 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class DataManagerImpl
 
     class ConnectionManager
-    class Stub <<gRPC stub>>
+    class "ScgStore::Stub" as StoreStub <<gRPC stub>>
+    class "ScgExternalStore::Stub" as ExternalStoreStub <<gRPC stub>>
 
     DataManagerImpl ..|> DataManagerInterface
     GITConnectorAPIImpl -[#7B1FA2]-> DataManagerInterface
-    ConnectionManager -[#7B1FA2]-> Stub : channel\nlocalhost:<grpc_port>
+    ConnectionManager -[#7B1FA2]-> StoreStub : create stub\nchannel localhost:<grpc_port>
+    ConnectionManager -[#7B1FA2]-> ExternalStoreStub : create stub\nchannel localhost:<grpc_port>
   }
 }
 
@@ -95,7 +97,8 @@ package "External / Third-party" as external_third_party {
   class "SCG UX" as ScgUx <<local web app>>
   class "scg_config.properties" as ScgConfigProperties <<config file>>
 
-  Stub -[#7B1FA2]-> ScgCore : gRPC
+  StoreStub -[#2E7D32]-> ScgCore : gRPC\nsaveCollection(...)
+  ExternalStoreStub -[#1565C0]-> ScgCore : gRPC\ncommitAndPush(...)
   ScgConfigProperties ..[#6B6B6B]..> ScgCore : ports\n(grpc_port)
   ScgConfigProperties ..[#6B6B6B]..> ScgUx : ports\n(workflow_port)
 }

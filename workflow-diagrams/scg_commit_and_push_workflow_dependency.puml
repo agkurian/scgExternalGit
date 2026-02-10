@@ -38,13 +38,12 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     class "scg::SCGIntegration" as SCGIntegration
     abstract class SCGWorkflow
     class SCGCommitAndPushWorkflow
-    class SCGAnswer
 
     class SCGUXMessenger
     class SCGFileDialogWrapper
 
     SCGCommitAndPushWorkflow -|> SCGWorkflow
-    SCGCommitAndPushWorkflow o-- SCGAnswer : answers
+    SCGCommitAndPushWorkflow o-- SCGCommitAndPushResponse : answer
 
     SCGIntegration *-- SCGUXMessenger
   }
@@ -59,10 +58,14 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class "SysDMRequestFactory" as SCGRequestFactory
     class SCGCommitAndPushRequest
 
+    class SCGAnswer
+    class SCGCommitAndPushResponse
+
     interface SCGConnectorAPIInterface
     class GITConnectorAPIImpl
 
     SCGCommitAndPushRequest -|> SCGRequest
+    SCGCommitAndPushResponse -|> SCGAnswer
     GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
   }
 
@@ -99,7 +102,7 @@ package "External / Third-party" as external_third_party {
   }
 
   package "Local SCG Core" as P_scg_core {
-    class Stub <<gRPC stub>>
+    class "ScgExternalStore::Stub" as ExternalStoreStub <<gRPC stub>>
     class "SCG Core" as ScgCore <<local gRPC endpoint>>
   }
 
@@ -138,8 +141,8 @@ SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
 GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : commitAndPush(...)
 DataManagerInterface <|.. DataManagerImpl
 
-ConnectionManager -[#1565C0]-> Stub : commitAndPush()\n<- response
-Stub -[#1565C0]-> ScgCore : gRPC commitAndPush()\nlocalhost:<grpc_port>
+ConnectionManager -[#1565C0]-> ExternalStoreStub : commitAndPush()\n<- ApiExecutionStatus
+ExternalStoreStub -[#1565C0]-> ScgCore : gRPC commitAndPush()\nlocalhost:<grpc_port>
 
 ' SCG Core may relay to a remote SCG server (Amesim does not call it directly)
 ScgCore ..[#1565C0]..> ScgServer : commit/push\n(out of process)
