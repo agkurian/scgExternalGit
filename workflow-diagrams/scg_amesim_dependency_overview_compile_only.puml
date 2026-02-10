@@ -12,6 +12,8 @@ skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
 skinparam package<<external>>BackgroundColor #FFF8E1
 skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -20,6 +22,7 @@ hide empty members
 legend right
   <color:#6B6B6B>Gray dashed</color> : compile-time dependency / link / uses
   Beige package : outside Amesim source code
+  Light blue package : Amesim GUI (outer layer)
 endlegend
 
 left to right direction
@@ -48,7 +51,7 @@ package "kernel/* (Amesim core)" as kernel_amesim {
   SIMEditor ..[#6B6B6B]..> SIMDocumentManagerInterface
 }
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   package "sim_main_window" as P_main_window {
     class SIMMainWindow
     class SIMDownloadModelWidget
@@ -165,6 +168,8 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     abstract class SCGRequest
     class "SysDMRequests.*" as SysDMRequests
 
+    class SCGConfig
+
     interface SCGConnectorAPIInterface
     class GITConnectorAPIImpl
 
@@ -180,6 +185,10 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     SCGService ..[#6B6B6B]..> SCGRequest
     SCGService ..[#6B6B6B]..> SCGAnswerWaiter
     SCGRequest ..[#6B6B6B]..> SCGService
+
+    ' Config + connector wiring (compile-time)
+    SCGService ..[#6B6B6B]..> SCGConfig
+    SCGRequest ..[#6B6B6B]..> SCGConnectorAPIInterface
   }
 
   package "mlm_data_manager" as P_mlm_dm {
@@ -208,6 +217,8 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
 
     scg_base o-- MLMConfig
   }
+
+  SCGConfig ..[#6B6B6B]..> MLMConfig
 
   ' GUI integration -> adapter boundary
   SCGIntegration ..[#6B6B6B]..> sysdm_service

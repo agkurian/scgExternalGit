@@ -49,10 +49,21 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
 
     class "SIMSCGConnectorLoginWidget" as SIMSCGConnectorLoginWidget
 
+    interface "ModelManagementSupportInterface" as ModelManagementSupportInterface
+    class "ModelManagementSupport" as ModelManagementSupport
+    class "PLGParser" as PLGParser
+
     SCGFileDialogWrapper *-- QTabWidget
     SCGAccessModelWorkflow -|> SCGWorkflow
     SCGSaveModelWorkflow -|> SCGAccessModelWorkflow
     SCGPublishCollectionWorkflow -|> SCGWorkflow
+
+    SCGIntegration o-- ModelManagementSupportInterface
+    ModelManagementSupport ..|> ModelManagementSupportInterface
+    ModelManagementSupport ..[#6B6B6B]..> PLGParser
+
+    ' Layout helper: keep the ModelManagementSupport block below the core workflow types
+    SIMSCGConnectorLoginWidget -[hidden]down-> ModelManagementSupportInterface
   }
 
   package "sim_dialogs" as P_dialogs {
@@ -67,6 +78,16 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
 
   SCGSaveModelWorkflow -[#1565C0]-> SIMSCGConnectorLoginWidget : checkLogin()
   SCGSaveModelWorkflow -[#1565C0]-> SIMSCGConnectorPublishWidget : getPublishWidget(PUBLISH_MODEL)
+
+  ' Publish prep: rewrite deps and update the already-open model
+  SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : getPreProcessedXml(artifact, ...)
+  SIMSCGConnectorPublishWidget -[#1565C0]-> ModelManagementSupportInterface : SetDependencies(modified_dependency_xml)\n(update active open model params)
+  ModelManagementSupportInterface -[#1565C0]-> PLGParser : setProperty(DATA_VALUE, ...)\n(triggers live model update)
+
+  ' Save into SCG workspace before uploading
+  SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : saveModel(collection_ws_dir)
+  SCGIntegration -[#1565C0]-> SIMMainWindow : signalSaveModel(collection_ws_dir)
+  SIMMainWindow -[#1565C0]-> SIMEditor : saveToSCGWorkspace(...)
 
   SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : publishModel(...)
   SCGIntegration -[#1565C0]-> SCGPublishCollectionWorkflow : executeSCGWorkflow()
@@ -131,16 +152,22 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
   }
 
+  package "extractor" as P_extractor {
+    class "Extractor" as Extractor <<preprocess dependencies>>
+  }
+
   package "scg_base" as P_scg_base {
     class MLMConfig
   }
 
   GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
   DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
+  SCGIntegration ..[#1565C0]..> Extractor : getPreProcessedXml(...)\n(compute modified dependency XML)
 
   ' Encourage stable ordering within this group
   P_service -[hidden]down-> P_mlm
-  P_mlm -[hidden]down-> P_scg_base
+  P_mlm -[hidden]down-> P_extractor
+  P_extractor -[hidden]down-> P_scg_base
 }
 
 package "External / Third-party" as external_third_party {
