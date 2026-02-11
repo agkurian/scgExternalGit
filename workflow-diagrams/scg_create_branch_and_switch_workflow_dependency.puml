@@ -10,6 +10,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 hide empty members
@@ -25,7 +29,7 @@ left to right direction
 gui_amesim_gui -[hidden]right-> transverse_scg_adapter
 transverse_scg_adapter -[hidden]right-> external_third_party
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   package "sim_gui_circuit_manip" as P_circuit_manip {
     class SIMCmdSCGCreateBranchAndSwitch
     class SIMMainWindow
@@ -75,7 +79,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   }
 }
 
-package "External / Third-party" as external_third_party {
+package "External / Third-party" as external_third_party <<external>> {
   package "Local SCG Core" as P_scg_core {
     class Stub <<gRPC stub>>
     class "SCG Core" as ScgCore <<local gRPC endpoint>>

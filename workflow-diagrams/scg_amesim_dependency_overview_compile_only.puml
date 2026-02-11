@@ -28,33 +28,31 @@ endlegend
 left to right direction
 
 ' Stable group ordering (UI -> Kernel -> SCG adapter -> External libs)
-gui_amesim_gui -[hidden]right-> kernel_amesim
+gui_amesim_gui -[hidden]right-> gui_common_gui
+gui_common_gui -[hidden]right-> gui_tools_shared
+gui_tools_shared -[hidden]right-> gui_plugin_mgmt
+gui_plugin_mgmt -[hidden]right-> kernel_amesim
 kernel_amesim -[hidden]right-> transverse_scg_adapter
 transverse_scg_adapter -[hidden]right-> external_outside_amesim
 
 package "kernel/* (Amesim core)" as kernel_amesim {
-  package "kernel/document" as P_kernel_document {
-    class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
-    class "doc_mgr::SIMDocument" as SIMDocument
-    class SIMEditor
-  }
-
-  package "kernel/preferences" as P_kernel_preferences {
+  package "kernel/application/ame_basic_tools_shared" as P_kernel_preferences {
     class "SIMPreferences" as KernelSIMPreferences
   }
 
   package "kernel shared" as P_kernel_shared {
     class ame_kernel_shared <<cmake target>>
   }
-
-  SIMDocumentManagerInterface ..[#6B6B6B]..> SIMDocument
-  SIMEditor ..[#6B6B6B]..> SIMDocumentManagerInterface
 }
 
 package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   package "sim_main_window" as P_main_window {
     class SIMMainWindow
     class SIMDownloadModelWidget
+  }
+
+  package "category_manip" as P_category_manip {
+    class SIMPathListDialog
   }
 
   package "sim_dialogs" as P_dialogs {
@@ -75,8 +73,14 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   }
 
   package "sim_gui_circuit_manip" as P_circuit_manip {
+    class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+    class "doc_mgr::SIMDocument" as SIMDocument
+    class SIMEditor
     class SIMCmdSCGGetCollectionMergeDetails
     class SIMCmdSCGCreateBranchAndSwitch
+
+    SIMDocumentManagerInterface ..[#6B6B6B]..> SIMDocument
+    SIMEditor ..[#6B6B6B]..> SIMDocumentManagerInterface
   }
 
   package "sysdm_integration (SCG UI integration)" as P_sysdm_integration {
@@ -152,6 +156,24 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   SCGIntegration ..[#6B6B6B]..> SCGGetExternalGitCollectionsWorkflow
 }
 
+package "gui/amesim_suite/common_gui" as gui_common_gui <<gui>> {
+  package "category_manip" as common_category_manip {
+    class COMPathListDialog
+  }
+}
+
+package "gui/baselib/gui_tools_shared" as gui_tools_shared <<gui>> {
+  class COMDockWindow
+}
+
+package "gui/amesim_suite/plugins/plugin_management" as gui_plugin_mgmt <<gui>> {
+  class PLGParser
+}
+
+SIMPathListDialog -|> COMPathListDialog
+SIMPathListDialog ..[#6B6B6B]..> COMDockWindow
+PLGParser ..[#6B6B6B]..> ame_kernel_shared : links via plugin_management
+
 package "transverse/scg_adapter" as transverse_scg_adapter {
   package "sysdm_api_wrapper" as P_api_wrapper {
     class sysdm_api_wrapper <<cmake target>>
@@ -171,13 +193,13 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGConfig
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     sysdm_service o-- SCGService
     sysdm_service o-- SCGRequestFactory
     sysdm_service o-- SysDMRequests
 
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     ' Request and service API layering (compile-time)
     SCGService o-- SCGConnectorAPIInterface
@@ -210,12 +232,15 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class extractor_mapper <<cmake target>>
   }
 
-  package "protocol/config" as P_proto_cfg {
-    class mlm_proto <<cmake target>>
+  package "scg_base" as P_scg_base {
     class scg_base <<cmake target>>
     class MLMConfig
 
     scg_base o-- MLMConfig
+  }
+
+  package "mlm_proto" as P_mlm_proto {
+    class mlm_proto <<cmake target>>
   }
 
   SCGConfig ..[#6B6B6B]..> MLMConfig
@@ -274,20 +299,5 @@ package "External (outside Amesim source)" <<external>> as external_outside_ames
     }
   }
 }
-
-note bottom of SCGIntegration
-  Isolation target (module boundary hint):
-  - SCGIntegration + workflows + SCGUXMessenger + SCGFileDialogWrapper
-  - sysdm_service + sysdm_api_wrapper + mlm_data_manager (+ extractor, config, proto)
-
-  Coverage note:
-  - This is an overview; it is not a complete inventory of every SCG workflow/class.
-  - Additional workflow headers exist under
-    gui/amesim_suite/amesim_gui/sysdm_integration/inc (e.g. login/logout,
-    open/save model/library, download/dispose collection, server list, etc.).
-
-  This diagram intentionally omits runtime interactions (arrows).
-  The "External SCG system" block is shown for context only.
-end note
 
 @enduml

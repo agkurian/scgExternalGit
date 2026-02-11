@@ -10,6 +10,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -27,7 +31,7 @@ gui_amesim_gui -[hidden]down-> gui_common_gui
 gui_common_gui -[hidden]down-> transverse_scg_adapter
 transverse_scg_adapter -[hidden]down-> external_third_party
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
   package "category_manip" as P_category_manip {
     class SIMPathListDialog
     class "COMDockWindow (Library collection editor)" as LibraryCollectionDock
@@ -78,7 +82,7 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
   P_category_manip -[hidden]down-> gui_common_gui
 }
 
-package "gui/amesim_suite/common_gui" as gui_common_gui {
+package "gui/amesim_suite/common_gui" as gui_common_gui <<gui>> {
   package "category_manip" as common_category_manip {
     class COMPathListDialog
   }
@@ -129,7 +133,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   P_service -[hidden]down-> P_mlm
 }
 
-package "External / Third-party" as external_third_party {
+package "External / Third-party" as external_third_party <<external>> {
   package "Local SCG configuration" as P_scg_config {
     class "scg_config.properties" as ScgConfigProperties <<config file>>
     class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>

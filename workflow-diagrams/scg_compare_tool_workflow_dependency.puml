@@ -1,5 +1,6 @@
 @startuml scg_compare_tool_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,6 +11,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 hide empty members
@@ -21,15 +26,8 @@ endlegend
 
 top to bottom direction
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> kernel_document
-kernel_document -[hidden]down-> external_tools
-
-' Keep the runtime path visually below configuration
-external_tools -[hidden]down-> runtime_flow
-
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
-  package "sim_data_display" as P_sim_data_display {
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui/sim_data_display" as P_sim_data_display {
     class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
     class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
     class "SIMSCGCollectionLibraryViewerWidget" as SIMSCGCollectionLibraryViewerWidget
@@ -49,28 +47,26 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
     SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_COMPARE_RESOLVE_TOOL
   }
 
-  package "sysdm_integration" as P_sysdm {
+  package "amesim_suite/amesim_gui/sysdm_integration" as P_sysdm {
     class "scg::SCGIntegration" as SCGIntegration
     SCGIntegration *-- SCGUXMessenger
 
     SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : getUXMessenger()
     SCGIntegration -[#1565C0]-> SCGUXMessenger : returns messenger instance
   }
+  package "amesim_suite/amesim_gui/sim_gui_circuit_manip" as P_circuit_manip {
+    class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+    class "doc_mgr::SIMDocument" as SIMDocument
+    class SIMSketchWindow
+    class SIMEditor
+
+    SIMDocumentManagerInterface -[#1565C0]-> SIMDocument : activeDocument()
+    SIMDocument -[#1565C0]-> SIMSketchWindow : getSketch()
+    SIMSketchWindow -[#1565C0]-> SIMEditor : getEditor()
+  }
 }
 
-package "kernel/document" as kernel_document {
-  class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
-  class "doc_mgr::SIMDocument" as SIMDocument
-  class SIMSketchWindow
-  class "SIMEditor" as SIMEditor
-  class COMCircuitInterface
-
-  SIMDocumentManagerInterface -[#1565C0]-> SIMDocument : activeDocument()
-  SIMDocument -[#1565C0]-> SIMSketchWindow : getSketch()
-  SIMSketchWindow -[#1565C0]-> SIMEditor : getEditor()
-}
-
-package "External / Tools" as external_tools {
+package "External / SCG system" as external_tools <<external>> {
   class "SCG UX" as ScgUx <<local web app>>
 
   class "SCG REST API" as ScgRest <<local REST endpoint>>
@@ -85,9 +81,8 @@ package "External / Tools" as external_tools {
   class "QMessageBox" as QMessageBox
 }
 
-package "Runtime (collection viewer)" as runtime_flow {
-  ' dummy package to keep the main trigger path separate from config blocks
-}
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_gui -[hidden]down-> external_tools
 
 ' =====================================
 ' Compare / merge tool launch (UX -> native)

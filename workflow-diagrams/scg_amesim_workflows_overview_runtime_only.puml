@@ -1,0 +1,246 @@
+@startuml scg_amesim_workflows_overview_runtime_only
+' Runtime/workflow-only overview (no compile/link dependencies)
+' Same module structure as scg_amesim_dependency_overview.puml
+set namespaceSeparator none
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassFontSize 11
+skinparam wrapWidth 200
+hide empty members
+
+legend right
+  **Arrow colors by flow category:**
+  <color:#1565C0>━━</color> Blue : UX / websocket / browser
+  <color:#2E7D32>━━</color> Green : document save / circuit ops
+  <color:#E65100>━━</color> Orange : SCG workflow dispatch
+  <color:#6A1B9A>━━</color> Purple : gRPC / service chain
+  <color:#C62828>━━</color> Red : configuration reads
+  <color:#795548>━━</color> Brown : external tool launch
+  ---
+  Light blue package : Amesim GUI layer
+  Light yellow package : External SCG system
+endlegend
+
+left to right direction
+
+package "gui" as gui_amesim_gui <<gui>> {
+
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_main_window" as P_main_window {
+      class SIMMainWindow
+      class SIMDownloadModelWidget
+    }
+
+    package "category_manip" as P_category_manip {
+      class SIMPathListDialog
+    }
+
+    package "sim_dialogs" as P_dialogs {
+      class SIMPreferencesModelMgt
+      class SIMSCGConnectorPublishWidget
+    }
+
+    package "sim_data_display" as P_display {
+      class SIMSCGCollectionViewerWidget
+      class SIMSCGModelCollectionViewerWidget
+      class SIMSCGCollectionLibraryViewerWidget
+
+      class QWebEngineView
+
+      SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+      SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
+      SIMSCGCollectionViewerWidget o-- QWebEngineView
+    }
+
+    package "sim_gui_circuit_manip" as P_circuit_manip {
+      class "doc_mgr::SIMDocumentManagerInterface" as SIMDocumentManagerInterface
+      class SIMEditor
+      class SIMCmdSCGGetCollectionMergeDetails
+      class SIMCmdSCGCreateBranchAndSwitch
+    }
+
+    package "sysdm_integration" as P_sysdm_integration {
+      class "scg::SCGIntegration" as SCGIntegration
+
+      class SCGUXMessenger
+      class SCGFileDialogWrapper
+
+      abstract class SCGWorkflow
+
+      interface "ModelManagementSupportInterface" as ModelManagementSupportInterface
+
+      SCGIntegration *-- SCGUXMessenger
+    }
+
+    ' Internal layout
+    P_main_window -[hidden]down-> P_category_manip
+    P_category_manip -[hidden]down-> P_dialogs
+    P_display -[hidden]right-> P_circuit_manip
+    P_circuit_manip -[hidden]right-> P_sysdm_integration
+  }
+
+  package "common_gui/category_manip" as common_category_manip {
+    class COMPathListDialog
+  }
+
+  package "baselib/gui_tools_shared" as gui_tools_shared_inner {
+    class "COMDockWindow" as LibraryCollectionDock
+  }
+
+  package "amesim_suite/plugins/plugin_management" as gui_plugin_mgmt_inner {
+    class PLGParser
+  }
+}
+
+SIMPathListDialog -|> COMPathListDialog
+
+package "kernel" as kernel_amesim {
+  package "kernel/application/ame_basic_tools_shared" as P_kernel_preferences {
+    class SIMPreferences
+  }
+}
+
+package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "scg_base" as P_scg_base {
+    class MLMConfig
+  }
+
+  package "sysdm_service" as P_service {
+    class SCGService
+    class "SysDMRequestFactory" as SCGRequestFactory
+
+    abstract class SCGRequest
+
+    interface SCGConnectorAPIInterface
+    class SCGConnectorAPIInterfaceImpl
+
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as P_mlm_dm {
+    interface DataManagerInterface
+    class DataManagerImpl
+
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+  }
+
+  package "extractor" as P_extractor {
+    interface ExtractorCoreServiceInterface <<preprocess dependencies>>
+  }
+
+  ' Internal layout: service chain flows right
+  P_scg_base -[hidden]down-> P_service
+  P_service -[hidden]right-> P_mlm_dm
+  P_mlm_dm -[hidden]down-> P_extractor
+}
+
+package "External / SCG system" <<external>> as external_scg {
+  package "Local SCG UX" as P_ux {
+    class "SCG UX" as ScgUx <<local web app>>
+  }
+
+  package "Local SCG Core" as P_core {
+    class Stub <<gRPC stub>>
+    class "SCG Core" as ScgCore <<local gRPC endpoint>>
+    class "SCG REST API" as ScgRest <<local REST endpoint>>
+  }
+
+  package "Local configuration" as P_conf {
+    class "scg_config.properties" as ScgConfigProperties <<config file>>
+  }
+
+  package "External tools" as P_tools {
+    class "AMEDiff" as AMEDiff <<.ame diff/merge>>
+    class "Configured tool" as ConfiguredTool <<other extensions>>
+  }
+
+  package "Remote SCG Server" as P_remote {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+
+  ' Internal layout
+  P_ux -[hidden]down-> P_core
+  P_core -[hidden]down-> P_conf
+  P_conf -[hidden]down-> P_remote
+}
+
+' Stable group ordering (GUI on left -> kernel -> adapter -> external on right)
+gui_amesim_gui -[hidden]right-> kernel_amesim
+kernel_amesim -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
+
+' =====================================
+' Runtime workflow arrows (color-coded)
+' =====================================
+
+' --- Blue: Embedded UX / websocket ---
+QWebEngineView -[#1565C0]-> ScgUx : load
+ScgUx -[#1565C0]-> SCGUXMessenger : ws msg
+SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : received
+ScgUx -[#1565C0]-> ScgRest : configure
+ScgRest -[#1565C0]-> ScgCore : persist
+
+' --- Blue: Library collection editor ---
+SIMPathListDialog -[#1565C0]-> LibraryCollectionDock : setWidget
+SIMPathListDialog -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : setup
+SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGIntegration : validate
+
+' --- Blue: Model collection viewer ---
+SCGIntegration -[#1565C0]-> SIMSCGModelCollectionViewerWidget : create
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : upload/sync/merge
+
+' --- Green: Document save / circuit ops ---
+SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMEditor : save before diff
+SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMDocumentManagerInterface : active circuit
+SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMEditor : save to workspace
+
+' --- Orange: SCG workflow dispatch ---
+SIMMainWindow -[#E65100]-> SCGIntegration : SCG actions
+SIMDownloadModelWidget -[#E65100]-> SCGIntegration : download
+SIMSCGConnectorPublishWidget -[#E65100]-> SCGIntegration : publish
+SIMSCGCollectionViewerWidget -[#E65100]-> SCGIntegration : getMessenger
+SIMCmdSCGGetCollectionMergeDetails -[#E65100]-> SCGIntegration : merge
+SIMCmdSCGCreateBranchAndSwitch -[#E65100]-> SCGIntegration : branch
+SCGIntegration -[#E65100]-> SCGWorkflow : execute
+SCGIntegration -[#E65100]-> SCGFileDialogWrapper : create
+SCGWorkflow -[#E65100]-> SCGFileDialogWrapper : input
+SIMSCGConnectorPublishWidget -[#E65100]-> ModelManagementSupportInterface : setDeps
+ModelManagementSupportInterface -[#E65100]-> PLGParser : setProperty
+
+' --- Red: Configuration reads ---
+SIMPreferencesModelMgt -[#C62828]-> SIMPreferences : SCG server URL
+MLMConfig -[#C62828]-> ScgConfigProperties : read ports
+
+' --- Purple: gRPC / service chain ---
+SCGWorkflow -[#6A1B9A]-> SCGRequestFactory : create
+SCGWorkflow -[#6A1B9A]-> SCGService : dispatch
+SCGService -[#6A1B9A]-> SCGRequest : execute
+SCGRequest -[#6A1B9A]-> SCGConnectorAPIInterface : call
+SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : delegate
+DataManagerImpl -[#6A1B9A]-> ExtractorCoreServiceInterface : preprocess
+DataManagerImpl -[#6A1B9A]-> ConnectionManager : gRPC
+ConnectionManager -[#6A1B9A]-> Stub : channel
+Stub -[#6A1B9A]-> ScgCore : gRPC
+ScgCore ..[#6A1B9A]..> ScgServer : forward
+
+' --- Brown: External tool launch ---
+SIMSCGCollectionViewerWidget -[#795548]-> AMEDiff : .ame files
+SIMSCGCollectionViewerWidget -[#795548]-> ConfiguredTool : other exts
+
+@enduml

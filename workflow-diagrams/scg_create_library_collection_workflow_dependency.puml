@@ -1,5 +1,6 @@
 @startuml scg_create_library_collection_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,6 +11,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -22,24 +27,20 @@ legend right
   <color:#6B6B6B>Gray</color> : dependency / uses (static)
 endlegend
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_suite -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_third_party
-
-package "gui/amesim_suite" as gui_amesim_suite {
+package "gui" as gui_amesim_suite <<gui>> {
   package "common_gui/category_manip" as P_common_cat {
     class COMPathListDialog
   }
 
-  package "amesim_gui/category_manip" as P_amesim_cat {
+  package "amesim_suite/amesim_gui/category_manip" as P_amesim_cat {
     class SIMPathListDialog
   }
 
-  package "amesim_gui/sim_main_window" as P_mainwin {
+  package "amesim_suite/amesim_gui/sim_main_window" as P_mainwin {
     class SIMMainWindow
   }
 
-  package "amesim_gui/sysdm_integration" as P_sysdm_gui {
+  package "amesim_suite/amesim_gui/sysdm_integration" as P_sysdm_gui {
     class "SCGFileDialogWrapper (DialogType::SAVE_LIBRARY_DLG)" as SaveLibraryDlg
     class "scg::SCGIntegration" as SCGIntegration
 
@@ -109,7 +110,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   }
 }
 
-package "External / Third-party" as external_third_party {
+package "External / SCG system" as external_third_party <<external>> {
   package "Local SCG Core" as P_scg_core {
     class "SCG Core gRPC endpoint" as SCGCoreGrpc
     class Stub <<gRPC stub>>
@@ -120,6 +121,10 @@ package "External / Third-party" as external_third_party {
     Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
   }
 }
+
+' Encourage stable top-to-bottom placement of the big groups
+gui_amesim_suite -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_third_party
 
 ' =====================================
 ' SCGSaveLibraryWorkflow: pre-flight gate
