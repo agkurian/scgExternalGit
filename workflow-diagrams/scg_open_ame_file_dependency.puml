@@ -1,5 +1,6 @@
 @startuml scg_open_ame_file_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -23,52 +24,52 @@ legend right
   <color:#1565C0>Blue</color> : workflow / message / call
   <color:#6B6B6B>Gray</color> : dependency / uses (static)
 endlegend
-top to bottom direction
+left to right direction
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_third_party
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_main_window" as P_main_window {
+      class SIMMainWindow
+      class "QDockWidget (SCG collection viewer)" as SCGCollectionViewerDockWidget
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
-  package "sim_main_window" as P_main_window {
-    class SIMMainWindow
-    class "QDockWidget (SCG collection viewer)" as SCGCollectionViewerDockWidget
+      SIMMainWindow *-- SCGCollectionViewerDockWidget
+    }
 
-    SIMMainWindow *-- SCGCollectionViewerDockWidget
+    package "sim_data_display" as P_display {
+      class SIMSCGCollectionViewerWidget
+      class SIMSCGModelCollectionViewerWidget
+      class "QWebEngineView" as QWebEngineView
+
+      SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+      SIMSCGCollectionViewerWidget o-- QWebEngineView
+    }
+
+    package "sysdm_integration" as P_sysdm {
+      class "scg::SCGIntegration" as SCGIntegration
+      class "scg::SCGIntegrationPrivate" as SCGIntegrationPrivate
+
+      abstract class SCGWorkflow
+      class SCGGetCollectionIdWorkflow
+      class SCGGetCollectionMetainformationDetailsWorkflow
+
+      class SCGUXMessenger
+
+      SCGIntegration *-- SCGIntegrationPrivate
+      SCGIntegration *-- SCGUXMessenger
+
+      SCGGetCollectionIdWorkflow -|> SCGWorkflow
+      SCGGetCollectionMetainformationDetailsWorkflow -|> SCGWorkflow
+    }
+
+    SIMMainWindow o-- SIMSCGModelCollectionViewerWidget : mSCGModelCollectionViewerWidget
+
+    SIMMainWindow -[#1565C0]-> SIMSCGModelCollectionViewerWidget : updateSCGCollectionViewerWidget()
+    SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : validateModelforCollectionEditor(document, collection_id)
+
+    ' Encourage stable ordering within this group
+    P_main_window -[hidden]right-> P_display
+    P_display -[hidden]right-> P_sysdm
   }
-
-  package "sim_data_display" as P_display {
-    class SIMSCGCollectionViewerWidget
-    class SIMSCGModelCollectionViewerWidget
-
-    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
-  }
-
-  package "sysdm_integration" as P_sysdm {
-    class "scg::SCGIntegration" as SCGIntegration
-    class "scg::SCGIntegrationPrivate" as SCGIntegrationPrivate
-
-    abstract class SCGWorkflow
-    class SCGGetCollectionIdWorkflow
-    class SCGGetCollectionMetainformationDetailsWorkflow
-
-    class SCGUXMessenger
-
-    SCGIntegration *-- SCGIntegrationPrivate
-    SCGIntegration *-- SCGUXMessenger
-
-    SCGGetCollectionIdWorkflow -|> SCGWorkflow
-    SCGGetCollectionMetainformationDetailsWorkflow -|> SCGWorkflow
-  }
-
-  SIMMainWindow o-- SIMSCGModelCollectionViewerWidget : mSCGModelCollectionViewerWidget
-
-  SIMMainWindow -[#1565C0]-> SIMSCGModelCollectionViewerWidget : updateSCGCollectionViewerWidget()
-  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : validateModelforCollectionEditor(document, collection_id)
-
-  ' Encourage stable ordering within this group
-  P_main_window -[hidden]down-> P_display
-  P_display -[hidden]down-> P_sysdm
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
@@ -84,12 +85,12 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGGetServerMetaDataRequest
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGGetCollectionIdRequest -|> SCGRequest
     SCGGetCollectionMetaInformationsRequest -|> SCGRequest
     SCGGetServerMetaDataRequest -|> SCGRequest
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
@@ -99,36 +100,25 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     interface DataManagerInterface
     class DataManagerImpl
 
-    class GrpcCouplingMethods
     class ConnectionManager
 
     DataManagerImpl ..|> DataManagerInterface
-    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
-    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+    DataManagerImpl ..[#6B6B6B]..> ConnectionManager
   }
 
   package "scg_base" as P_scg_base {
     class MLMConfig
-    class scg_base <<cmake target>>
-
-    scg_base o-- MLMConfig
   }
 
-  package "mlm_proto" as P_mlm_proto {
-    class mlm_proto <<cmake target>>
-  }
-
-  GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
-  DataManagerImpl ..[#6B6B6B]..> mlm_proto : links
+  SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
   DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
 
   ' Encourage stable ordering within this group
-  P_service -[hidden]down-> P_mlm
-  P_mlm -[hidden]down-> P_scg_base
-  P_scg_base -[hidden]down-> P_mlm_proto
+  P_service -[hidden]right-> P_mlm
+  P_mlm -[hidden]right-> P_scg_base
 }
 
-package "External / Third-party" as external_third_party <<external>> {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG configuration" as P_scg_config {
     class "scg_config.properties" as ScgConfigProperties <<config file>>
     class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
@@ -145,15 +135,16 @@ package "External / Third-party" as external_third_party <<external>> {
 
   package "Local SCG UX" as P_scg_ux {
     class "ClientForGit UX (Web app)" as SCGUX
-    class "QWebEngineView" as QWebEngineView
-
-    QWebEngineView -[#1565C0]-> SCGUX : loads URL
   }
 
   ' Encourage stable ordering within this group
-  P_scg_config -[hidden]down-> P_scg_core
-  P_scg_core -[hidden]down-> P_scg_ux
+  P_scg_config -[hidden]right-> P_scg_core
+  P_scg_core -[hidden]right-> P_scg_ux
 }
+
+' Stable group ordering (GUI left -> adapter -> external right)
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
 
 ' =====================================
 ' Open file -> show/hide SCG viewer dock
@@ -161,7 +152,7 @@ package "External / Third-party" as external_third_party <<external>> {
 
 SIMMainWindow -[#1565C0]-> SIMSCGModelCollectionViewerWidget : setupCollectionModel()
 SIMSCGModelCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionViewerWidget : setPageInWebView(...)
-SIMSCGCollectionViewerWidget -[#1565C0]-> QWebEngineView : loads embedded web UI
+QWebEngineView -[#1565C0]-> SCGUX : loads embedded web UI
 
 SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : getUXMessenger()\n(ws port for URL params)
 
@@ -187,7 +178,7 @@ SCGGetCollectionIdRequest -[#1565C0]-> SCGConnectorAPIInterface : getCollectionI
 SCGGetCollectionMetaInformationsRequest -[#1565C0]-> SCGConnectorAPIInterface : getCollectionMetaInformations(...)
 SCGGetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : getServerMetaData(...)
 
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 ConnectionManager -[#1565C0]-> Stub : CreateChannel("localhost:<grpc_port>")
 Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
 
@@ -202,7 +193,7 @@ ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
 ConnectionManager -[#1565C0]-> MLMConfig : GetScgGrpcPort()
 SCGIntegration -[#1565C0]-> MLMConfig : (indirect) config for URLs; connection checks
 
-note bottom of QWebEngineView
+note bottom of SCGUX
   URL pattern:
   http://localhost:<workflow_port>/ClientForGit/index.html#...
 end note

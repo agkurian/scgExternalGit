@@ -1,5 +1,6 @@
 @startuml scg_sync_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,23 +11,26 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 hide empty members
 
 legend right
-  <color:#1565C0>Blue</color> : workflow / message / call
-  <color:#6B6B6B>Gray</color> : dependency / uses (static)
+  **Arrow colors by flow category:**
+  <color:#1565C0>━━</color> Blue : UX triggers
+  <color:#E65100>━━</color> Orange : SCG workflow dispatch
+  <color:#6A1B9A>━━</color> Purple : gRPC / service chain
+  <color:#C62828>━━</color> Red : configuration reads
 endlegend
 
-top to bottom direction
+left to right direction
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> transverse_pack_kernel
-transverse_pack_kernel -[hidden]down-> external_third_party
-
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
   package "sim_data_display" as P_display {
     class SIMSCGCollectionViewerWidget
     class SIMSCGModelCollectionViewerWidget
@@ -53,24 +57,28 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
 
     SCGIntegration o-- ModelManagementSupportInterface
   }
+  }
 
   ' Trigger can be either model or library collection editor
-  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : sync()\n(virtual)
-  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : sync()\n(virtual)
+  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGModelCollectionViewerWidget : <color:#1565C0>sync()</color>\n<color:#1565C0>(virtual)</color>
+  SIMSCGCollectionViewerWidget -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : <color:#1565C0>sync()</color>\n<color:#1565C0>(virtual)</color>
 
-  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
-  SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : prepareSyncCollection(...)
-  SCGIntegration -[#1565C0]-> SCGSyncCollectionWorkflow : create + executeSCGWorkflow()
+  SIMSCGModelCollectionViewerWidget -[#E65100]-> SCGFileDialogWrapper : <color:#E65100>sync()</color>
+  SIMSCGModelCollectionViewerWidget -[#E65100]-> SCGIntegration : <color:#E65100>prepareSyncCollection(...)</color>
+  SCGIntegration -[#E65100]-> SCGSyncCollectionWorkflow : <color:#E65100>create + executeSCGWorkflow()</color>
 
-  SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGFileDialogWrapper : sync()
-  SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGIntegration : prepareLibrarySyncCollection(...)
-  SCGIntegration -[#1565C0]-> SCGSyncLibraryCollectionWorkflow : create + start()
+  SIMSCGCollectionLibraryViewerWidget -[#E65100]-> SCGFileDialogWrapper : <color:#E65100>sync()</color>
+  SIMSCGCollectionLibraryViewerWidget -[#E65100]-> SCGIntegration : <color:#E65100>prepareLibrarySyncCollection(...)</color>
+  SCGIntegration -[#E65100]-> SCGSyncLibraryCollectionWorkflow : <color:#E65100>create + start()</color>
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
+  package "scg_base" as P_scg_base {
+    class MLMConfig
+  }
+
   package "sysdm_service" as P_service {
     class SCGService
-    class SCGConfig
     class "SysDMRequestFactory" as SCGRequestFactory
 
     abstract class SCGRequest
@@ -80,11 +88,11 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGGetCEAStringRequest
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGGetPreprocessedXmlRequest -|> SCGRequest
     SCGGetCEAStringRequest -|> SCGRequest
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
@@ -93,37 +101,19 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   package "mlm_data_manager" as P_mlm {
     interface DataManagerInterface
     class DataManagerImpl
-
-    class GrpcCouplingMethods
     class ConnectionManager
 
     package "extractor" as P_extractor {
       class "extractor::CEASettings" as CEASettings
-      class "extractor::ExtracorCoreService" as ExtractorCoreService
+      class "extractor::ExtractorCoreService" as ExtractorCoreService
       class "extractor::CEACreator" as CEACreator
       class "extractor::CollectionCompleteInput" as CollectionCompleteInput
       class "extractor::MessageMapperVisitor" as MessageMapperVisitor
     }
 
     DataManagerImpl ..|> DataManagerInterface
-    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
-    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
-
-    ' Sync-specific preprocessing is implemented via extractor as well
-    DataManagerImpl ..[#6B6B6B]..> ExtractorCoreService : getPreprocessedDependencyXML()
-    ExtractorCoreService ..[#6B6B6B]..> CEACreator
-  }
-
-  package "scg_base" as P_scg_base {
-    class scg_base <<cmake target>>
-    class MLMConfig
-    scg_base o-- MLMConfig
-  }
-
-  package "mlm_proto" as P_mlm_proto {
-    class mlm_proto <<cmake target>>
-    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
-    mlm_proto o-- MLMGeneratedProto
+    DataManagerImpl ..> ExtractorCoreService : getPreprocessedDependencyXML()
+    ExtractorCoreService ..> CEACreator
   }
 }
 
@@ -132,11 +122,11 @@ package "transverse/pack_file/pack_kernel" as transverse_pack_kernel {
   class AMEKernelPackManager
   class AMEPackDependencyContainer
 
-  AMEKernelPackManager ..[#6B6B6B]..> AMEKernelPackSettings
+  AMEKernelPackManager ..> AMEKernelPackSettings
   AMEKernelPackManager o-- AMEPackDependencyContainer
 }
 
-package "External / Third-party" as external_third_party {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG configuration" as P_scg_config {
     class "scg_config.properties" as ScgConfigProperties <<config file>>
     class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
@@ -148,73 +138,68 @@ package "External / Third-party" as external_third_party {
     class "SCG Core" as ScgCore <<local gRPC endpoint>>
   }
 
-  package "Local SCG UX" as P_scg_ux {
-    class "SCG UX" as ScgUx <<local web app>>
-  }
-
   package "Remote SCG Server" as P_remote_scg {
     class "SCG Server" as ScgServer <<remote>>
   }
 }
 
+' Stable group ordering
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> transverse_pack_kernel
+transverse_pack_kernel -[hidden]right-> external_scg
+
 ' =====================================
-' Sync workflow dependencies
+' Sync workflow phase 1: preprocessed dependencies XML
 ' =====================================
 
-' Workflow phase 1: compute preprocessed dependencies XML (server-side logic via adapter)
-SCGSyncCollectionWorkflow -[#1565C0]-> SCGIntegration : getPreProcessedXml(artifact,...)
-SCGIntegration -[#1565C0]-> SCGRequestFactory : createRequestGetPreprocessedXml(...)
-SCGIntegration -[#1565C0]-> SCGService : dispatchRequest()
-SCGService -[#1565C0]-> SCGGetPreprocessedXmlRequest : execute()
-SCGGetPreprocessedXmlRequest -[#1565C0]-> SCGConnectorAPIInterface : getPreprocessedDependencyXML(...)
-SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
-
-GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : getPreprocessedDependencyXML(...)
-DataManagerInterface <|.. DataManagerImpl
+SCGSyncCollectionWorkflow -[#6A1B9A]-> SCGIntegration : <color:#6A1B9A>getPreProcessedXml(artifact,...)</color>
+SCGIntegration -[#6A1B9A]-> SCGRequestFactory : <color:#6A1B9A>createRequestGetPreprocessedXml(...)</color>
+SCGIntegration -[#6A1B9A]-> SCGService : <color:#6A1B9A>dispatchRequest()</color>
+SCGService -[#6A1B9A]-> SCGGetPreprocessedXmlRequest : <color:#6A1B9A>execute()</color>
+SCGGetPreprocessedXmlRequest -[#6A1B9A]-> SCGConnectorAPIInterface : <color:#6A1B9A>getPreprocessedDependencyXML(...)</color>
+SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : <color:#6A1B9A>getPreprocessedDependencyXML(...)</color>
 
 ' Apply the dependency model locally in Amesim
-SCGSyncCollectionWorkflow -[#1565C0]-> ModelManagementSupportInterface : SetDependencies(modified_xml)
-
-' Workflow phase 2: (re)create collection based on the updated dependency state
-SCGSyncCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCEAJsonString(...)
-SCGService -[#1565C0]-> SCGGetCEAStringRequest : execute()
-SCGGetCEAStringRequest -[#1565C0]-> SCGConnectorAPIInterface : createOrEditCollection(...)
-GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : createOrEditCollection(...)
-
-' createOrEditCollection() internally uses extractor to compute associated/recursive collections
-DataManagerImpl -[#1565C0]-> CEASettings : configure\n(node/category)
-DataManagerImpl -[#1565C0]-> ExtractorCoreService : GetCollectionCompleteInput(...)
-ExtractorCoreService -[#1565C0]-> CEACreator : buildCollection()/resolveDependencies()
-ExtractorCoreService -[#1565C0]-> CollectionCompleteInput
-DataManagerImpl -[#1565C0]-> MessageMapperVisitor : mappedOutput(...)
-
-' extractor uses kernel-side pack dependency discovery utilities
-CEACreator -[#1565C0]-> AMEKernelPackSettings
-CEACreator -[#1565C0]-> AMEKernelPackManager
-CEACreator -[#1565C0]-> AMEPackDependencyContainer
-
-ConnectionManager -[#1565C0]-> Stub : gRPC
-Stub -[#1565C0]-> ScgCore : localhost:<grpc_port>
-
-' SCG Core may relay to a remote SCG server (Amesim does not call it directly)
-ScgCore ..[#1565C0]..> ScgServer : sync status / metadata\n(out of process)
-
-' Build-time / API-level dependencies (CMake targets)
-DataManagerImpl ..[#6B6B6B]..> scg_base
-DataManagerImpl ..[#6B6B6B]..> mlm_proto
-GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
+SCGSyncCollectionWorkflow -[#E65100]-> ModelManagementSupportInterface : <color:#E65100>SetDependencies(modified_xml)</color>
 
 ' =====================================
-' Local port + URL resolution (config)
+' Sync workflow phase 2: (re)create collection
 ' =====================================
 
-MLMConfig -[#1565C0]-> ScgConfigProperties : reads tokens\nworkflow_port / server_port / grpc_port
-ScgConfigProperties -[#1565C0]-> ScgConfigDirWin
-ScgConfigProperties -[#1565C0]-> ScgConfigDirLnx
+SCGSyncCollectionWorkflow -[#6A1B9A]-> SCGRequestFactory : <color:#6A1B9A>createRequestGetCEAJsonString(...)</color>
+SCGService -[#6A1B9A]-> SCGGetCEAStringRequest : <color:#6A1B9A>execute()</color>
+SCGGetCEAStringRequest -[#6A1B9A]-> SCGConnectorAPIInterface : <color:#6A1B9A>createOrEditCollection(...)</color>
+SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : <color:#6A1B9A>createOrEditCollection(...)</color>
 
-ConnectionManager -up[#1565C0]-> MLMConfig : GetScgGrpcPort(); check localhost port
-SCGConfig -up[#1565C0]-> MLMConfig : GetScgWorkflowPort()
-SCGConfig -right[#1565C0]-> ScgUx : loads embedded web UI
+' createOrEditCollection() internally uses extractor
+DataManagerImpl -[#6A1B9A]-> CEASettings : <color:#6A1B9A>configure</color>\n<color:#6A1B9A>(node/category)</color>
+DataManagerImpl -[#6A1B9A]-> ExtractorCoreService : <color:#6A1B9A>GetCollectionCompleteInput(...)</color>
+ExtractorCoreService -[#6A1B9A]-> CEACreator : <color:#6A1B9A>buildCollection()/resolveDependencies()</color>
+ExtractorCoreService -[#6A1B9A]-> CollectionCompleteInput
+DataManagerImpl -[#6A1B9A]-> MessageMapperVisitor : <color:#6A1B9A>mappedOutput(...)</color>
+
+' Extractor uses kernel-side pack dependency discovery
+CEACreator -[#6A1B9A]-> AMEKernelPackSettings
+CEACreator -[#6A1B9A]-> AMEKernelPackManager
+CEACreator -[#6A1B9A]-> AMEPackDependencyContainer
+
+' gRPC chain to SCG Core
+DataManagerImpl -[#6A1B9A]-> ConnectionManager : <color:#6A1B9A>gRPC</color>
+ConnectionManager -[#6A1B9A]-> Stub : <color:#6A1B9A>gRPC</color>
+Stub -[#6A1B9A]-> ScgCore : <color:#6A1B9A>localhost:<grpc_port></color>
+
+' SCG Core may relay to a remote SCG server
+ScgCore ..[#6A1B9A]..> ScgServer : <color:#6A1B9A>sync status / metadata</color>\n<color:#6A1B9A>(out of process)</color>
+
+' =====================================
+' Configuration reads
+' =====================================
+
+MLMConfig -[#C62828]-> ScgConfigProperties : <color:#C62828>reads tokens</color>\n<color:#C62828>workflow_port / server_port / grpc_port</color>
+ScgConfigProperties -[#C62828]-> ScgConfigDirWin
+ScgConfigProperties -[#C62828]-> ScgConfigDirLnx
+
+ConnectionManager -[#C62828]-> MLMConfig : <color:#C62828>GetScgGrpcPort(); check localhost port</color>
 
 note right of SCGSyncCollectionWorkflow
   Sync flow (model collection) does two key steps:

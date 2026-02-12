@@ -1,5 +1,6 @@
 @startuml scg_workflows_overview_upload_vs_commitpush
 ' Overview diagram: shared vs differing dependencies
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,6 +11,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 hide empty members
@@ -17,7 +22,7 @@ hide empty members
 legend right
   <color:#2E7D32>Green</color> : publish workflow path
   <color:#1565C0>Blue</color> : commit&push workflow path
-  <color:#7B1FA2>Purple</color> : shared runtime infrastructure (created regardless of workflow)
+  <color:#7B1FA2>Purple</color> : shared runtime infrastructure
   <color:#6B6B6B>Gray dashed</color> : dependency / uses (static)
 endlegend
 
@@ -32,30 +37,33 @@ skinparam classBackgroundColor<<commitpush>> #E3F2FD
 skinparam classBorderColor<<commitpush>> #1565C0
 skinparam ArrowColor<<commitpush>> #1565C0
 
-' Stable group ordering (GUI top -> adapters middle -> external bottom)
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_third_party
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_data_display" as P_display {
+      class SIMSCGModelCollectionViewerWidget
+    }
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
-  package "sim_data_display" as P_display {
-    class SIMSCGModelCollectionViewerWidget
+    package "sim_dialogs" as P_dialogs {
+      class SIMSCGConnectorPublishWidget <<publish>>
+    }
+
+    package "sysdm_integration" as P_sysdm {
+      class "scg::SCGIntegration" as SCGIntegration
+      class SCGFileDialogWrapper
+
+      class SCGPublishCollectionWorkflow <<publish>>
+      class SCGCommitAndPushWorkflow <<commitpush>>
+    }
   }
 
-  package "sim_dialogs" as P_dialogs {
-    class SCGFileDialogWrapper
-    class SIMSCGConnectorPublishWidget <<publish>>
-  }
-
-  package "sysdm_integration" as P_sysdm {
-    class "scg::SCGIntegration" as SCGIntegration
-
-    class SCGPublishCollectionWorkflow <<publish>>
-    class SCGCommitAndPushWorkflow <<commitpush>>
-  }
-
-  SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : upload()\n(entry)
+  SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : <color:#6B6B6B>upload()</color>\n<color:#6B6B6B>(entry)</color>
   SCGFileDialogWrapper ..[#6B6B6B]..> SCGIntegration
 }
+
+' Stable group ordering
+gui_amesim_gui -[hidden]down-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]down-> external_scg
+P_extractor -[hidden]down-> P_pack_kernel
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
   package "sysdm_service" as P_service {
@@ -70,9 +78,9 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGCommitAndPushRequest <<commitpush>>
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
   }
@@ -86,21 +94,19 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class "ScgExternalStore::Stub" as ExternalStoreStub <<gRPC stub>>
 
     DataManagerImpl ..|> DataManagerInterface
-    GITConnectorAPIImpl -[#7B1FA2]-> DataManagerInterface
-    ConnectionManager -[#7B1FA2]-> StoreStub : create stub\nchannel localhost:<grpc_port>
-    ConnectionManager -[#7B1FA2]-> ExternalStoreStub : create stub\nchannel localhost:<grpc_port>
+    SCGConnectorAPIInterfaceImpl -[#7B1FA2]-> DataManagerInterface
+    ConnectionManager -[#7B1FA2]-> StoreStub : <color:#7B1FA2>create stub</color>\n<color:#7B1FA2>channel localhost:<grpc_port></color>
+    ConnectionManager -[#7B1FA2]-> ExternalStoreStub : <color:#7B1FA2>create stub</color>\n<color:#7B1FA2>channel localhost:<grpc_port></color>
   }
 }
 
-package "External / Third-party" as external_third_party {
+package "External / SCG system" as external_scg <<external>> {
   class "SCG Core" as ScgCore <<local gRPC endpoint>>
-  class "SCG UX" as ScgUx <<local web app>>
   class "scg_config.properties" as ScgConfigProperties <<config file>>
 
-  StoreStub -[#2E7D32]-> ScgCore : gRPC\nsaveCollection(...)
-  ExternalStoreStub -[#1565C0]-> ScgCore : gRPC\ncommitAndPush(...)
-  ScgConfigProperties ..[#6B6B6B]..> ScgCore : ports\n(grpc_port)
-  ScgConfigProperties ..[#6B6B6B]..> ScgUx : ports\n(workflow_port)
+  StoreStub -[#2E7D32]-> ScgCore : <color:#2E7D32>gRPC</color>\n<color:#2E7D32>saveCollection(...)</color>
+  ExternalStoreStub -[#1565C0]-> ScgCore : <color:#1565C0>gRPC</color>\n<color:#1565C0>commitAndPush(...)</color>
+  ScgConfigProperties ..[#6B6B6B]..> ScgCore : <color:#6B6B6B>ports</color>\n<color:#6B6B6B>(grpc_port)</color>
 }
 
 package "transverse/scg_adapter/extractor" as P_extractor {
@@ -111,15 +117,12 @@ package "transverse/pack_file/pack_kernel" as P_pack_kernel {
   class "pack_kernel" as PackKernel <<publish>>
 }
 
-' Nudge ordering of the two optional blocks
-P_extractor -[hidden]down-> P_pack_kernel
-
 ' Shared dispatch mechanism (both workflows create requests and dispatch via service)
-SCGPublishCollectionWorkflow -[#2E7D32]-> SCGRequestFactory : create requests
-SCGCommitAndPushWorkflow -[#1565C0]-> SCGRequestFactory : create requests
+SCGPublishCollectionWorkflow -[#2E7D32]-> SCGRequestFactory : <color:#2E7D32>create requests</color>
+SCGCommitAndPushWorkflow -[#1565C0]-> SCGRequestFactory : <color:#1565C0>create requests</color>
 
 SCGRequestFactory -[#7B1FA2]-> SCGRequest
-SCGService -[#7B1FA2]-> SCGRequest : execute()
+SCGService -[#7B1FA2]-> SCGRequest : <color:#7B1FA2>execute()</color>
 SCGRequest -[#7B1FA2]-> SCGConnectorAPIInterface
 
 ' Publish-specific request sequence
@@ -132,15 +135,15 @@ SCGPublishCollectionWorkflow ..[#2E7D32]..> SCGSaveCollectionRequest
 SCGCommitAndPushWorkflow ..[#1565C0]..> SCGCommitAndPushRequest
 
 ' Publish-specific dependency scan before save
-DataManagerImpl -[#2E7D32]-> Extractor : createOrEditCollection()\n(dependency scan)
-Extractor -[#2E7D32]-> PackKernel : compute dependencies
+DataManagerImpl -[#2E7D32]-> Extractor : <color:#2E7D32>createOrEditCollection()</color>\n<color:#2E7D32>(dependency scan)</color>
+Extractor -[#2E7D32]-> PackKernel : <color:#2E7D32>compute dependencies</color>
 
 ' Where the two UI paths diverge
-SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMSCGConnectorPublishWidget : upload()\n(non-external)
-SIMSCGConnectorPublishWidget -[#2E7D32]-> SCGIntegration : publishModel(...)
+SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMSCGConnectorPublishWidget : <color:#2E7D32>upload()</color>\n<color:#2E7D32>(non-external)</color>
+SIMSCGConnectorPublishWidget -[#2E7D32]-> SCGIntegration : <color:#2E7D32>publishModel(...)</color>
 SCGIntegration -[#2E7D32]-> SCGPublishCollectionWorkflow
 
-SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : upload()\n(external)
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGFileDialogWrapper : <color:#1565C0>upload()</color>\n<color:#1565C0>(external)</color>
 SCGIntegration -[#1565C0]-> SCGCommitAndPushWorkflow
 
 note right of SIMSCGConnectorPublishWidget

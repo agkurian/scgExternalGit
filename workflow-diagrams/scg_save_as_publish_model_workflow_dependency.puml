@@ -1,5 +1,6 @@
 @startuml scg_save_as_publish_model_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,65 +11,76 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
 hide empty members
-
-top to bottom direction
 
 legend right
   <color:#1565C0>Blue</color> : workflow / message / call
   <color:#6B6B6B>Gray</color> : dependency / uses (static)
 endlegend
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_third_party
+left to right direction
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
-  package "sim_main_window" as P_main_window {
-    class SIMMainWindow
-    class SIMSketchWindow
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_main_window" as P_main_window {
+      class SIMMainWindow
+      class SIMSketchWindow
+    }
+
+    package "sim_gui_circuit_manip" as P_editor {
+      class SIMEditor
+    }
+
+    package "sim_dialogs" as P_dialogs {
+      class "SIMSCGConnectorPublishWidget" as SIMSCGConnectorPublishWidget
+      class "SIMSCGConnectorLoginWidget" as SIMSCGConnectorLoginWidget
+    }
+
+    package "sysdm_integration" as P_sysdm {
+      class "SCGFileDialogWrapper" as SCGFileDialogWrapper
+      class "QTabWidget" as QTabWidget
+
+      class "scg::SCGIntegration" as SCGIntegration
+
+      abstract class SCGWorkflow
+      abstract class SCGAccessModelWorkflow
+      class SCGSaveModelWorkflow
+      class SCGPublishCollectionWorkflow
+
+      interface "ModelManagementSupportInterface" as ModelManagementSupportInterface
+      class "ModelManagementSupport" as ModelManagementSupport
+
+      SCGFileDialogWrapper *-- QTabWidget
+      SCGAccessModelWorkflow -|> SCGWorkflow
+      SCGSaveModelWorkflow -|> SCGAccessModelWorkflow
+      SCGPublishCollectionWorkflow -|> SCGWorkflow
+
+      SCGIntegration o-- ModelManagementSupportInterface
+      ModelManagementSupport ..|> ModelManagementSupportInterface
+
+      ' Layout helper
+      SIMSCGConnectorLoginWidget -[hidden]down-> ModelManagementSupportInterface
+    }
+
+    ' Encourage stable ordering within this group
+    P_main_window -[hidden]right-> P_editor
+    P_editor -[hidden]right-> P_dialogs
+    P_dialogs -[hidden]right-> P_sysdm
   }
 
-  package "sim_gui_circuit_manip" as P_editor {
-    class SIMEditor
-  }
-
-  package "sysdm_integration" as P_sysdm {
-    class "SCGFileDialogWrapper" as SCGFileDialogWrapper
-    class "QTabWidget" as QTabWidget
-
-    class "scg::SCGIntegration" as SCGIntegration
-
-    abstract class SCGWorkflow
-    abstract class SCGAccessModelWorkflow
-    class SCGSaveModelWorkflow
-    class SCGPublishCollectionWorkflow
-
-    class "SIMSCGConnectorLoginWidget" as SIMSCGConnectorLoginWidget
-
-    interface "ModelManagementSupportInterface" as ModelManagementSupportInterface
-    class "ModelManagementSupport" as ModelManagementSupport
+  package "amesim_suite/plugins/plugin_management" as gui_plugin_mgmt_inner {
     class "PLGParser" as PLGParser
-
-    SCGFileDialogWrapper *-- QTabWidget
-    SCGAccessModelWorkflow -|> SCGWorkflow
-    SCGSaveModelWorkflow -|> SCGAccessModelWorkflow
-    SCGPublishCollectionWorkflow -|> SCGWorkflow
-
-    SCGIntegration o-- ModelManagementSupportInterface
-    ModelManagementSupport ..|> ModelManagementSupportInterface
-    ModelManagementSupport ..[#6B6B6B]..> PLGParser
-
-    ' Layout helper: keep the ModelManagementSupport block below the core workflow types
-    SIMSCGConnectorLoginWidget -[hidden]down-> ModelManagementSupportInterface
   }
 
-  package "sim_dialogs" as P_dialogs {
-    class "SIMSCGConnectorPublishWidget" as SIMSCGConnectorPublishWidget
-  }
+  ModelManagementSupport ..[#6B6B6B]..> PLGParser
+}
 
   SIMEditor -[#1565C0]-> SCGFileDialogWrapper : createSCGSaveModelDialog(..., SAVE_MODEL_DLG)
   SIMEditor -[#1565C0]-> SCGFileDialogWrapper : getSaveFileName(...)
@@ -91,12 +103,6 @@ package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
 
   SIMSCGConnectorPublishWidget -[#1565C0]-> SCGIntegration : publishModel(...)
   SCGIntegration -[#1565C0]-> SCGPublishCollectionWorkflow : executeSCGWorkflow()
-
-  ' Encourage stable ordering within this group
-  P_main_window -[hidden]down-> P_editor
-  P_editor -[hidden]down-> P_sysdm
-  P_sysdm -[hidden]down-> P_dialogs
-}
 
 ' Entry-point delegation (declared after all classes to avoid forward references)
 SIMMainWindow -[#1565C0]-> SIMSketchWindow : slotSaveAs()
@@ -126,7 +132,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGSaveCollectionAnswer
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGGetAllCollectionRequest -|> SCGRequest
     SCGGetCEAStringRequest -|> SCGRequest
@@ -134,7 +140,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     SCGGetServerMetaDataRequest -|> SCGRequest
     SCGSaveCollectionRequest -|> SCGRequest
 
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
@@ -144,33 +150,31 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     interface DataManagerInterface
     class DataManagerImpl
 
-    class GrpcCouplingMethods
     class ConnectionManager
 
     DataManagerImpl ..|> DataManagerInterface
-    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
-    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+    DataManagerImpl ..[#6B6B6B]..> ConnectionManager
   }
 
   package "extractor" as P_extractor {
-    class "Extractor" as Extractor <<preprocess dependencies>>
+    interface ExtractorCoreServiceInterface <<preprocess dependencies>>
   }
 
   package "scg_base" as P_scg_base {
     class MLMConfig
   }
 
-  GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
+  SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
   DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
-  SCGIntegration ..[#1565C0]..> Extractor : getPreProcessedXml(...)\n(compute modified dependency XML)
+  SCGIntegration ..[#1565C0]..> ExtractorCoreServiceInterface : getPreProcessedXml(...)\n(compute modified dependency XML)
 
   ' Encourage stable ordering within this group
-  P_service -[hidden]down-> P_mlm
-  P_mlm -[hidden]down-> P_extractor
-  P_extractor -[hidden]down-> P_scg_base
+  P_service -[hidden]right-> P_mlm
+  P_mlm -[hidden]right-> P_extractor
+  P_extractor -[hidden]right-> P_scg_base
 }
 
-package "External / Third-party" as external_third_party {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG configuration" as P_scg_config {
     class "scg_config.properties" as ScgConfigProperties <<config file>>
     class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
@@ -186,8 +190,12 @@ package "External / Third-party" as external_third_party {
   }
 
   ' Encourage stable ordering within this group
-  P_scg_config -[hidden]down-> P_scg_core
+  P_scg_config -[hidden]right-> P_scg_core
 }
+
+' Stable group ordering (GUI left -> adapter -> external right)
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
 
 ' =====================================
 ' Save As -> Client for Git tab -> publish new model collection
@@ -199,7 +207,7 @@ SCGRequestFactory -[#1565C0]-> SCGGetAllCollectionRequest
 SCGSaveModelWorkflow -[#1565C0]-> SCGService : dispatchRequest(); wait
 
 SCGGetAllCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : getAllCollections()
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 
 ' Publish workflow: create/edit collection, set metadata, save
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetCEAJsonString(artifact, user, map, ...)
@@ -207,28 +215,28 @@ SCGRequestFactory -[#1565C0]-> SCGGetCEAStringRequest
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGGetCEAStringRequest -[#1565C0]-> SCGConnectorAPIInterface : createOrEditCollection(...)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestSetServerMetaData(meta)
 SCGRequestFactory -[#1565C0]-> SCGSetServerMetaDataRequest
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGSetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : setServerMetadata(...)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestGetServerMetaData(collectionIds)
 SCGRequestFactory -[#1565C0]-> SCGGetServerMetaDataRequest
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGGetServerMetaDataRequest -[#1565C0]-> SCGConnectorAPIInterface : getServerMetaData(...)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGRequestFactory : createRequestSaveCollection(user, details)
 SCGRequestFactory -[#1565C0]-> SCGSaveCollectionRequest
 SCGPublishCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGSaveCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : saveCollection(...)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
 
 ' gRPC coupling
 ConnectionManager -[#1565C0]-> Stub : CreateChannel("localhost:<grpc_port>")

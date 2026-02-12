@@ -1,5 +1,6 @@
 @startuml scg_create_branch_and_switch_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -25,23 +26,23 @@ endlegend
 
 left to right direction
 
-' Encourage stable left-to-right placement of the big groups
-gui_amesim_gui -[hidden]right-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]right-> external_third_party
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_main_window" as P_main_window {
+      class SIMMainWindow
+    }
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
-  package "sim_gui_circuit_manip" as P_circuit_manip {
-    class SIMCmdSCGCreateBranchAndSwitch
-    class SIMMainWindow
+    package "sim_gui_circuit_manip" as P_circuit_manip {
+      class SIMCmdSCGCreateBranchAndSwitch
 
-    SIMCmdSCGCreateBranchAndSwitch ..[#6B6B6B]..> SIMMainWindow : getMainWindow()
-  }
+      SIMCmdSCGCreateBranchAndSwitch ..[#6B6B6B]..> SIMMainWindow : getMainWindow()
+    }
 
-  package "sysdm_integration" as P_sysdm {
-    class "scg::SCGIntegration" as SCGIntegration
-    class SCGAnswerWaiter
+    package "sysdm_integration" as P_sysdm {
+      class "scg::SCGIntegration" as SCGIntegration
 
-    SIMMainWindow ..[#6B6B6B]..> SCGIntegration : getSCGIntegration()
+      SIMMainWindow ..[#6B6B6B]..> SCGIntegration : getSCGIntegration()
+    }
   }
 }
 
@@ -49,6 +50,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   package "sysdm_service" as P_service {
     class SCGService
     class "SysDMRequestFactory" as SCGRequestFactory
+    class SCGAnswerWaiter
 
     abstract class SCGRequest
 
@@ -56,16 +58,16 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGCreateBranchResponse
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGCreateBranchAndSwitchRequest -|> SCGRequest
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     ' Local ordering to keep arrows off the package title
     SCGService -[hidden]down-> SCGRequestFactory
     SCGRequestFactory -[hidden]down-> SCGCreateBranchAndSwitchRequest
     SCGCreateBranchAndSwitchRequest -[hidden]down-> SCGConnectorAPIInterface
-    SCGConnectorAPIInterface -[hidden]down-> GITConnectorAPIImpl
+    SCGConnectorAPIInterface -[hidden]down-> SCGConnectorAPIInterfaceImpl
   }
 
   package "mlm_data_manager" as P_mlm {
@@ -79,7 +81,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   }
 }
 
-package "External / Third-party" as external_third_party <<external>> {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG Core" as P_scg_core {
     class Stub <<gRPC stub>>
     class "SCG Core" as ScgCore <<local gRPC endpoint>>
@@ -89,6 +91,10 @@ package "External / Third-party" as external_third_party <<external>> {
     class "SCG Server" as ScgServer <<remote>>
   }
 }
+
+' Stable group ordering (GUI left -> adapter -> external right)
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
 
 ' =========================
 ' Create Branch And Switch
@@ -102,7 +108,7 @@ SCGIntegration -[#1565C0]-> SCGAnswerWaiter : wait()
 SCGService -[#1565C0]-> SCGRequest : execute()
 
 SCGRequest -[#1565C0]-> SCGConnectorAPIInterface : createBranchAndSwitch(...)
-GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : createBranchAndSwitch(...)
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface : createBranchAndSwitch(...)
 ConnectionManager -[#1565C0]-> Stub : createBranchAndSwitch()
 Stub -[#1565C0]-> ScgCore : gRPC call\nlocalhost:<grpc_port>
 

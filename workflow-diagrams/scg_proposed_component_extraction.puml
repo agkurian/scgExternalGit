@@ -1,0 +1,254 @@
+@startuml scg_proposed_component_extraction
+' Proposed architecture: extract scg_adapter as a standalone component
+' Shows the boundary between Amesim (GUI + kernel) and the extracted scg_adapter
+' with dependency-inversion interfaces at the seam
+set namespaceSeparator none
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 40
+skinparam roundcorner 8
+skinparam ArrowThickness 1.2
+skinparam ArrowColor #2E2E2E
+skinparam PackageBorderColor #6B6B6B
+skinparam PackageBackgroundColor #FFFFFF
+skinparam ClassBorderColor #6B6B6B
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassFontSize 11
+skinparam wrapWidth 200
+hide empty members
+
+skinparam package<<amesim>>BackgroundColor #F1F8FF
+skinparam package<<amesim>>BorderColor #6B8FB3
+skinparam package<<extracted>>BackgroundColor #F1FFF1
+skinparam package<<extracted>>BorderColor #2E7D32
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<interface>>BackgroundColor #FFF0F5
+skinparam package<<interface>>BorderColor #C62828
+
+legend right
+  **Proposed component extraction**
+  Light blue  : Stays in Amesim (GUI + kernel)
+  Light green : Extracted standalone scg_adapter
+  Light pink  : Dependency-inversion interfaces
+  Light yellow: External SCG system (unchanged)
+  ---
+  <color:#E65100>━━</color> Orange : workflow dispatch (GUI → adapter)
+  <color:#6A1B9A>━━</color> Purple : service chain (adapter internal)
+  <color:#1565C0>━━</color> Blue : UX / websocket
+  <color:#2E7D32>━━</color> Green : callback (adapter → GUI via interface)
+  <color:#C62828>━━</color> Red : configuration
+  <color:#795548>━━</color> Brown : pack dependency resolution
+endlegend
+
+left to right direction
+
+' =====================================================
+' AMESIM (stays in Amesim — GUI glue + kernel)
+' =====================================================
+package "Amesim" <<amesim>> as amesim_boundary {
+
+  package "gui / sysdm_integration (thin)" as P_gui_thin {
+    class "scg::SCGIntegration" as SCGIntegration <<facade>>
+    class SCGUXMessenger <<websocket handler>>
+    class SCGFileDialogWrapper <<file dialog>>
+    class SCGGuiCallbackImpl <<implements ISCGGuiCallback>>
+    class PackDepResolverImpl <<implements ISCGPackDepResolver>>
+  }
+
+  package "gui / amesim_gui (UI widgets)" as P_gui_widgets {
+    class SIMMainWindow
+    class SIMDownloadModelWidget
+    class SIMSCGConnectorPublishWidget
+    class SIMSCGCollectionViewerWidget
+    class SIMSCGModelCollectionViewerWidget
+    class SIMEditor
+    class SIMDocumentManagerInterface
+    class SIMCmdSCGGetCollectionMergeDetails
+    class SIMCmdSCGCreateBranchAndSwitch
+    class SIMPreferencesModelMgt
+    class SIMPathListDialog
+    class ModelManagementSupportInterface
+    class PLGParser
+    class QWebEngineView
+    class LibraryCollectionDock
+  }
+
+  package "kernel" as P_kernel {
+    class SIMPreferences
+  }
+
+  package "transverse / pack_kernel" as P_pack_kernel {
+    class AMEKernelPackManager <<pack dependency discovery>>
+  }
+
+  P_gui_thin -[hidden]down-> P_gui_widgets
+  P_gui_widgets -[hidden]down-> P_kernel
+  P_kernel -[hidden]right-> P_pack_kernel
+}
+
+' =====================================================
+' DEPENDENCY-INVERSION INTERFACES (defined by adapter)
+' =====================================================
+package "Interfaces (owned by scg_adapter)" <<interface>> as P_interfaces {
+  interface ISCGGuiCallback <<adapter → GUI>> {
+    +showFileSaveDialog()
+    +notifySaveBeforeDiff()
+    +showMergeConflictUI()
+    +refreshCollectionView()
+  }
+
+  interface ISCGPackDependencyResolver <<adapter → pack_kernel>> {
+    +resolveDependencies(packPath)
+    +listPackContents(packPath)
+  }
+}
+
+' =====================================================
+' EXTRACTED scg_adapter (standalone component)
+' =====================================================
+package "scg_adapter (extracted)" <<extracted>> as extracted_adapter {
+
+  package "scg_base" as X_scg_base {
+    class MLMConfig <<config reader>>
+  }
+
+  package "workflows" as X_workflows {
+    abstract class SCGWorkflow <<orchestrator>>
+    class SCGSyncWorkflow
+    class SCGUploadWorkflow
+    class SCGCommitPushWorkflow
+    class SCGDownloadWorkflow
+    class SCGOpenLibCollectionWorkflow
+    class SCGCreateLibCollectionWorkflow
+    class SCGCreateBranchWorkflow
+    class SCGMergeDetailsWorkflow
+    class SCGResolveConflictWorkflow
+    class SCGSaveAsPublishWorkflow
+    class SCGCompareToolWorkflow
+    class SCGOpenAmeFileWorkflow
+    class SCGPreferencesWorkflow
+
+    SCGSyncWorkflow -|> SCGWorkflow
+    SCGUploadWorkflow -|> SCGWorkflow
+    SCGCommitPushWorkflow -|> SCGWorkflow
+    SCGDownloadWorkflow -|> SCGWorkflow
+    SCGOpenLibCollectionWorkflow -|> SCGWorkflow
+    SCGCreateLibCollectionWorkflow -|> SCGWorkflow
+    SCGCreateBranchWorkflow -|> SCGWorkflow
+    SCGMergeDetailsWorkflow -|> SCGWorkflow
+    SCGResolveConflictWorkflow -|> SCGWorkflow
+    SCGSaveAsPublishWorkflow -|> SCGWorkflow
+    SCGCompareToolWorkflow -|> SCGWorkflow
+    SCGOpenAmeFileWorkflow -|> SCGWorkflow
+    SCGPreferencesWorkflow -|> SCGWorkflow
+  }
+
+  package "sysdm_service" as X_service {
+    class SCGService
+    class SCGRequestFactory
+    class SCGAnswerWaiter
+
+    abstract class SCGRequest
+    interface SCGConnectorAPIInterface
+    class SCGConnectorAPIInterfaceImpl
+
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
+  }
+
+  package "mlm_data_manager" as X_mlm_dm {
+    interface DataManagerInterface
+    class DataManagerImpl
+    class ConnectionManager
+
+    DataManagerImpl ..|> DataManagerInterface
+  }
+
+  package "extractor" as X_extractor {
+    interface ExtractorCoreServiceInterface <<preprocess dependencies>>
+  }
+
+  ' Internal layout
+  X_scg_base -[hidden]right-> X_workflows
+  X_workflows -[hidden]right-> X_service
+  X_service -[hidden]right-> X_mlm_dm
+  X_mlm_dm -[hidden]down-> X_extractor
+}
+
+' =====================================================
+' EXTERNAL SCG SYSTEM (unchanged)
+' =====================================================
+package "External / SCG system" <<external>> as external_scg {
+  package "Local SCG" as P_local_scg {
+    class "SCG UX" as ScgUx <<local web app>>
+    class "SCG Core" as ScgCore <<gRPC endpoint>>
+    class Stub <<gRPC stub>>
+    class "scg_config.properties" as ScgConfigProperties
+  }
+  package "Remote" as P_remote {
+    class "SCG Server" as ScgServer <<remote>>
+  }
+}
+
+' =====================================================
+' Stable layout ordering
+' =====================================================
+amesim_boundary -[hidden]right-> P_interfaces
+P_interfaces -[hidden]right-> extracted_adapter
+extracted_adapter -[hidden]right-> external_scg
+
+' =====================================================
+' ARROWS
+' =====================================================
+
+' --- Orange: GUI → adapter workflow dispatch ---
+SIMMainWindow -[#E65100]-> SCGIntegration : <color:#E65100>SCG actions</color>
+SIMDownloadModelWidget -[#E65100]-> SCGIntegration : <color:#E65100>download</color>
+SIMSCGConnectorPublishWidget -[#E65100]-> SCGIntegration : <color:#E65100>publish</color>
+SIMCmdSCGGetCollectionMergeDetails -[#E65100]-> SCGIntegration : <color:#E65100>merge</color>
+SIMCmdSCGCreateBranchAndSwitch -[#E65100]-> SCGIntegration : <color:#E65100>branch</color>
+
+SCGIntegration -[#E65100]-> SCGWorkflow : <color:#E65100>execute</color>
+SCGIntegration -[#E65100]-> SCGAnswerWaiter : <color:#E65100>wait</color>
+
+' --- Green: adapter calls back into GUI via interface ---
+SCGWorkflow -[#2E7D32]-> ISCGGuiCallback : <color:#2E7D32>GUI actions\n</color><color:#2E7D32>(file dialogs, save, refresh)</color>
+SCGGuiCallbackImpl ..[#2E7D32]..> ISCGGuiCallback : <color:#2E7D32>implements</color>
+SCGGuiCallbackImpl -[#2E7D32]-> SCGFileDialogWrapper : <color:#2E7D32>delegate</color>
+SCGGuiCallbackImpl -[#2E7D32]-> SIMEditor : <color:#2E7D32>save</color>
+SCGGuiCallbackImpl -[#2E7D32]-> SIMDocumentManagerInterface : <color:#2E7D32>active circuit</color>
+
+' --- Brown: adapter calls pack_kernel via interface ---
+ExtractorCoreServiceInterface -[#795548]-> ISCGPackDependencyResolver : <color:#795548>resolve pack deps</color>
+PackDepResolverImpl ..[#795548]..> ISCGPackDependencyResolver : <color:#795548>implements</color>
+PackDepResolverImpl -[#795548]-> AMEKernelPackManager : <color:#795548>delegate</color>
+
+' --- Purple: adapter-internal service chain ---
+SCGWorkflow -[#6A1B9A]-> SCGRequestFactory : <color:#6A1B9A>create</color>
+SCGWorkflow -[#6A1B9A]-> SCGService : <color:#6A1B9A>dispatch</color>
+SCGService -[#6A1B9A]-> SCGRequest : <color:#6A1B9A>execute</color>
+SCGRequest -[#6A1B9A]-> SCGConnectorAPIInterface : <color:#6A1B9A>call</color>
+SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : <color:#6A1B9A>delegate</color>
+DataManagerImpl -[#6A1B9A]-> ExtractorCoreServiceInterface : <color:#6A1B9A>preprocess</color>
+DataManagerImpl -[#6A1B9A]-> ConnectionManager : <color:#6A1B9A>gRPC</color>
+ConnectionManager -[#6A1B9A]-> Stub : <color:#6A1B9A>channel</color>
+Stub -[#6A1B9A]-> ScgCore : <color:#6A1B9A>gRPC</color>
+ScgCore ..[#6A1B9A]..> ScgServer : <color:#6A1B9A>forward</color>
+
+' --- Blue: UX / websocket ---
+QWebEngineView -[#1565C0]-> ScgUx : <color:#1565C0>load</color>
+ScgUx -[#1565C0]-> SCGUXMessenger : <color:#1565C0>ws msg</color>
+SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : <color:#1565C0>received</color>
+SIMSCGCollectionViewerWidget -[#1565C0]-> SCGIntegration : <color:#1565C0>UX event</color>
+
+' --- Red: Configuration ---
+SIMPreferencesModelMgt -[#C62828]-> SIMPreferences : <color:#C62828>SCG server URL</color>
+MLMConfig -[#C62828]-> ScgConfigProperties : <color:#C62828>read ports</color>
+
+' --- Dependency injection at startup ---
+SCGIntegration -[#E65100,dashed]-> SCGGuiCallbackImpl : <color:#E65100>creates & injects</color>
+SCGIntegration -[#E65100,dashed]-> PackDepResolverImpl : <color:#E65100>creates & injects</color>
+
+@enduml

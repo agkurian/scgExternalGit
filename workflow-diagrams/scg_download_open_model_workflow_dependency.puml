@@ -1,5 +1,6 @@
 @startuml scg_download_open_model_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -19,63 +20,61 @@ skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
 hide empty members
 
-top to bottom direction
+left to right direction
 
 legend right
   <color:#1565C0>Blue</color> : workflow / message / call
   <color:#6B6B6B>Gray</color> : dependency / uses (static)
 endlegend
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_third_party
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_main_window" as P_main_window {
+      class SIMMainWindow
+      class "SIMDownloadModelWidget" as SIMDownloadModelWidget
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui <<gui>> {
-  package "sim_main_window" as P_main_window {
-    class SIMMainWindow
-    class "SIMDownloadModelWidget" as SIMDownloadModelWidget
+      class "QWebEngineView" as QWebEngineView
+      class "ClientForGit UX (Web app)" as SCGUX
 
-    class "QWebEngineView" as QWebEngineView
-    class "ClientForGit UX (Web app)" as SCGUX
+      QWebEngineView -[#1565C0]-> SCGUX : loads URL
+    }
 
-    QWebEngineView -[#1565C0]-> SCGUX : loads URL
+    package "sysdm_integration" as P_sysdm {
+      class "SCGFileDialogWrapper" as SCGFileDialogWrapper
+      class "QTabWidget" as QTabWidget
+
+      class "scg::SCGIntegration" as SCGIntegration
+
+      abstract class SCGWorkflow
+      abstract class SCGAccessModelWorkflow
+      class SCGOpenModelWorkflow
+      class SCGDownloadCollectionWorkflow
+
+      class SCGUXMessenger
+
+      SCGOpenModelWorkflow -|> SCGAccessModelWorkflow
+      SCGAccessModelWorkflow -|> SCGWorkflow
+      SCGDownloadCollectionWorkflow -|> SCGWorkflow
+
+      SCGFileDialogWrapper *-- QTabWidget
+      SCGIntegration *-- SCGUXMessenger
+    }
+
+    SIMMainWindow -[#1565C0]-> SCGFileDialogWrapper : new(..., DOWNLOAD_MODEL_DLG)
+    SCGFileDialogWrapper -[#1565C0]-> SCGIntegration : openModel(this)
+
+    SCGOpenModelWorkflow -[#1565C0]-> SIMDownloadModelWidget : retrieveData()
+    SCGOpenModelWorkflow -[#1565C0]-> SCGAccessModelWorkflow : start() / checkLogin()
+    SCGAccessModelWorkflow -[#1565C0]-> SIMDownloadModelWidget : (shown in wrapper stack)
+
+    SIMDownloadModelWidget -[#1565C0]-> QWebEngineView : setUrl(repository?customconfig=...)
+    SCGUXMessenger -[#1565C0]-> SIMDownloadModelWidget : messageReceived(type="SelectionChange")
+
+    SIMDownloadModelWidget -[#1565C0]-> SCGIntegration : getDownloadCollection(branchVersionId, checkoutPath, ...)
+
+    ' Encourage stable ordering within this group
+    P_main_window -[hidden]right-> P_sysdm
   }
-
-  package "sysdm_integration" as P_sysdm {
-    class "SCGFileDialogWrapper" as SCGFileDialogWrapper
-    class "QTabWidget" as QTabWidget
-
-    class "scg::SCGIntegration" as SCGIntegration
-
-    abstract class SCGWorkflow
-    abstract class SCGAccessModelWorkflow
-    class SCGOpenModelWorkflow
-    class SCGDownloadCollectionWorkflow
-
-    class SCGUXMessenger
-
-    SCGOpenModelWorkflow -|> SCGAccessModelWorkflow
-    SCGAccessModelWorkflow -|> SCGWorkflow
-    SCGDownloadCollectionWorkflow -|> SCGWorkflow
-
-    SCGFileDialogWrapper *-- QTabWidget
-    SCGIntegration *-- SCGUXMessenger
-  }
-
-  SIMMainWindow -[#1565C0]-> SCGFileDialogWrapper : new(..., DOWNLOAD_MODEL_DLG)
-  SCGFileDialogWrapper -[#1565C0]-> SCGIntegration : openModel(this)
-
-  SCGOpenModelWorkflow -[#1565C0]-> SIMDownloadModelWidget : retrieveData()
-  SCGOpenModelWorkflow -[#1565C0]-> SCGAccessModelWorkflow : start() / checkLogin()
-  SCGAccessModelWorkflow -[#1565C0]-> SIMDownloadModelWidget : (shown in wrapper stack)
-
-  SIMDownloadModelWidget -[#1565C0]-> QWebEngineView : setUrl(repository?customconfig=...)
-  SCGUXMessenger -[#1565C0]-> SIMDownloadModelWidget : messageReceived(type="SelectionChange")
-
-  SIMDownloadModelWidget -[#1565C0]-> SCGIntegration : getDownloadCollection(branchVersionId, checkoutPath, ...)
-
-  ' Encourage stable ordering within this group
-  P_main_window -[hidden]down-> P_sysdm
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
@@ -93,11 +92,11 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGGetContainingCollectionAnswer
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGDownloadCollectionRequest -|> SCGRequest
     SCGGetContainingCollectionRequest -|> SCGRequest
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
@@ -107,27 +106,25 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     interface DataManagerInterface
     class DataManagerImpl
 
-    class GrpcCouplingMethods
     class ConnectionManager
 
     DataManagerImpl ..|> DataManagerInterface
-    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
-    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
+    DataManagerImpl ..[#6B6B6B]..> ConnectionManager
   }
 
   package "scg_base" as P_scg_base {
     class MLMConfig
   }
 
-  GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface
+  SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface
   DataManagerImpl ..[#1565C0]..> MLMConfig : reads ports/paths
 
   ' Encourage stable ordering within this group
-  P_service -[hidden]down-> P_mlm
-  P_mlm -[hidden]down-> P_scg_base
+  P_service -[hidden]right-> P_mlm
+  P_mlm -[hidden]right-> P_scg_base
 }
 
-package "External / Third-party" as external_third_party <<external>> {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG configuration" as P_scg_config {
     class "scg_config.properties" as ScgConfigProperties <<config file>>
     class "%APPDATA%/Simcenter/scg/config" as ScgConfigDirWin <<Windows path>>
@@ -143,8 +140,12 @@ package "External / Third-party" as external_third_party <<external>> {
   }
 
   ' Encourage stable ordering within this group
-  P_scg_config -[hidden]down-> P_scg_core
+  P_scg_config -[hidden]right-> P_scg_core
 }
+
+' Stable group ordering (GUI left -> adapter -> external right)
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
 
 ' =====================================
 ' File->Open -> SCG tab -> download -> open
@@ -160,7 +161,7 @@ SCGRequestFactory -[#1565C0]-> SCGDownloadCollectionRequest
 SCGDownloadCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGDownloadCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : downloadCollection(user, params)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface : downloadCollection(...)
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface : downloadCollection(...)
 
 ConnectionManager -[#1565C0]-> Stub : CreateChannel("localhost:<grpc_port>")
 Stub -[#1565C0]-> SCGCoreGrpc : gRPC calls
@@ -170,7 +171,7 @@ SCGRequestFactory -[#1565C0]-> SCGGetContainingCollectionRequest
 SCGDownloadCollectionWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGGetContainingCollectionRequest -[#1565C0]-> SCGConnectorAPIInterface : getContainingCollection(user, collectionId)
-SCGConnectorAPIInterface -[#1565C0]-> DataManagerInterface : getContainingCollection(...)
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface : getContainingCollection(...)
 
 ' Open the downloaded .ame
 SCGDownloadCollectionWorkflow -[#1565C0]-> SCGIntegration : load(<downloaded .ame path>)

@@ -122,6 +122,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   package "sysdm_service" as P_service {
     class SCGService
     class "SysDMRequestFactory" as SCGRequestFactory
+    class SCGAnswerWaiter
 
     abstract class SCGRequest
 
@@ -148,6 +149,10 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
   P_scg_base -[hidden]down-> P_service
   P_service -[hidden]right-> P_mlm_dm
   P_mlm_dm -[hidden]down-> P_extractor
+}
+
+package "transverse/pack_file/pack_kernel" as transverse_pack_kernel {
+  class AMEKernelPackManager <<pack dependency discovery>>
 }
 
 package "External / SCG system" <<external>> as external_scg {
@@ -180,67 +185,70 @@ package "External / SCG system" <<external>> as external_scg {
   P_conf -[hidden]down-> P_remote
 }
 
-' Stable group ordering (GUI on left -> kernel -> adapter -> external on right)
+' Stable group ordering (GUI on left -> kernel -> adapter -> pack_kernel -> external on right)
 gui_amesim_gui -[hidden]right-> kernel_amesim
 kernel_amesim -[hidden]right-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]right-> external_scg
+transverse_scg_adapter -[hidden]right-> transverse_pack_kernel
+transverse_pack_kernel -[hidden]right-> external_scg
 
 ' =====================================
 ' Runtime workflow arrows (color-coded)
 ' =====================================
 
 ' --- Blue: Embedded UX / websocket ---
-QWebEngineView -[#1565C0]-> ScgUx : load
-ScgUx -[#1565C0]-> SCGUXMessenger : ws msg
-SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : received
-ScgUx -[#1565C0]-> ScgRest : configure
-ScgRest -[#1565C0]-> ScgCore : persist
+QWebEngineView -[#1565C0]-> ScgUx : <color:#1565C0>load</color>
+ScgUx -[#1565C0]-> SCGUXMessenger : <color:#1565C0>ws msg</color>
+SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : <color:#1565C0>received</color>
+ScgUx -[#1565C0]-> ScgRest : <color:#1565C0>configure</color>
+ScgRest -[#1565C0]-> ScgCore : <color:#1565C0>persist</color>
 
 ' --- Blue: Library collection editor ---
-SIMPathListDialog -[#1565C0]-> LibraryCollectionDock : setWidget
-SIMPathListDialog -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : setup
-SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGIntegration : validate
+SIMPathListDialog -[#1565C0]-> LibraryCollectionDock : <color:#1565C0>setWidget</color>
+SIMPathListDialog -[#1565C0]-> SIMSCGCollectionLibraryViewerWidget : <color:#1565C0>setup</color>
+SIMSCGCollectionLibraryViewerWidget -[#1565C0]-> SCGIntegration : <color:#1565C0>validate</color>
 
 ' --- Blue: Model collection viewer ---
-SCGIntegration -[#1565C0]-> SIMSCGModelCollectionViewerWidget : create
-SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : upload/sync/merge
+SCGIntegration -[#1565C0]-> SIMSCGModelCollectionViewerWidget : <color:#1565C0>create</color>
+SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : <color:#1565C0>upload/sync/merge</color>
 
 ' --- Green: Document save / circuit ops ---
-SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMEditor : save before diff
-SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMDocumentManagerInterface : active circuit
-SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMEditor : save to workspace
+SIMSCGModelCollectionViewerWidget -[#2E7D32]-> SIMEditor : <color:#2E7D32>save before diff</color>
+SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMDocumentManagerInterface : <color:#2E7D32>active circuit</color>
+SIMSCGCollectionViewerWidget -[#2E7D32]-> SIMEditor : <color:#2E7D32>save to workspace</color>
 
 ' --- Orange: SCG workflow dispatch ---
-SIMMainWindow -[#E65100]-> SCGIntegration : SCG actions
-SIMDownloadModelWidget -[#E65100]-> SCGIntegration : download
-SIMSCGConnectorPublishWidget -[#E65100]-> SCGIntegration : publish
-SIMSCGCollectionViewerWidget -[#E65100]-> SCGIntegration : getMessenger
-SIMCmdSCGGetCollectionMergeDetails -[#E65100]-> SCGIntegration : merge
-SIMCmdSCGCreateBranchAndSwitch -[#E65100]-> SCGIntegration : branch
-SCGIntegration -[#E65100]-> SCGWorkflow : execute
-SCGIntegration -[#E65100]-> SCGFileDialogWrapper : create
-SCGWorkflow -[#E65100]-> SCGFileDialogWrapper : input
-SIMSCGConnectorPublishWidget -[#E65100]-> ModelManagementSupportInterface : setDeps
-ModelManagementSupportInterface -[#E65100]-> PLGParser : setProperty
+SIMMainWindow -[#E65100]-> SCGIntegration : <color:#E65100>SCG actions</color>
+SIMDownloadModelWidget -[#E65100]-> SCGIntegration : <color:#E65100>download</color>
+SIMSCGConnectorPublishWidget -[#E65100]-> SCGIntegration : <color:#E65100>publish</color>
+SIMSCGCollectionViewerWidget -[#E65100]-> SCGIntegration : <color:#E65100>getMessenger</color>
+SIMCmdSCGGetCollectionMergeDetails -[#E65100]-> SCGIntegration : <color:#E65100>merge</color>
+SIMCmdSCGCreateBranchAndSwitch -[#E65100]-> SCGIntegration : <color:#E65100>branch</color>
+SCGIntegration -[#E65100]-> SCGWorkflow : <color:#E65100>execute</color>
+SCGIntegration -[#E65100]-> SCGFileDialogWrapper : <color:#E65100>create</color>
+SCGWorkflow -[#E65100]-> SCGFileDialogWrapper : <color:#E65100>input</color>
+SIMSCGConnectorPublishWidget -[#E65100]-> ModelManagementSupportInterface : <color:#E65100>setDeps</color>
+ModelManagementSupportInterface -[#E65100]-> PLGParser : <color:#E65100>setProperty</color>
 
 ' --- Red: Configuration reads ---
-SIMPreferencesModelMgt -[#C62828]-> SIMPreferences : SCG server URL
-MLMConfig -[#C62828]-> ScgConfigProperties : read ports
+SIMPreferencesModelMgt -[#C62828]-> SIMPreferences : <color:#C62828>SCG server URL</color>
+MLMConfig -[#C62828]-> ScgConfigProperties : <color:#C62828>read ports</color>
 
 ' --- Purple: gRPC / service chain ---
-SCGWorkflow -[#6A1B9A]-> SCGRequestFactory : create
-SCGWorkflow -[#6A1B9A]-> SCGService : dispatch
-SCGService -[#6A1B9A]-> SCGRequest : execute
-SCGRequest -[#6A1B9A]-> SCGConnectorAPIInterface : call
-SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : delegate
-DataManagerImpl -[#6A1B9A]-> ExtractorCoreServiceInterface : preprocess
-DataManagerImpl -[#6A1B9A]-> ConnectionManager : gRPC
-ConnectionManager -[#6A1B9A]-> Stub : channel
-Stub -[#6A1B9A]-> ScgCore : gRPC
-ScgCore ..[#6A1B9A]..> ScgServer : forward
+SCGWorkflow -[#6A1B9A]-> SCGRequestFactory : <color:#6A1B9A>create</color>
+SCGWorkflow -[#6A1B9A]-> SCGService : <color:#6A1B9A>dispatch</color>
+SCGIntegration -[#6A1B9A]-> SCGAnswerWaiter : <color:#6A1B9A>wait</color>
+SCGService -[#6A1B9A]-> SCGRequest : <color:#6A1B9A>execute</color>
+SCGRequest -[#6A1B9A]-> SCGConnectorAPIInterface : <color:#6A1B9A>call</color>
+SCGConnectorAPIInterfaceImpl -[#6A1B9A]-> DataManagerInterface : <color:#6A1B9A>delegate</color>
+DataManagerImpl -[#6A1B9A]-> ExtractorCoreServiceInterface : <color:#6A1B9A>preprocess</color>
+ExtractorCoreServiceInterface -[#6A1B9A]-> AMEKernelPackManager : <color:#6A1B9A>resolve pack deps</color>
+DataManagerImpl -[#6A1B9A]-> ConnectionManager : <color:#6A1B9A>gRPC</color>
+ConnectionManager -[#6A1B9A]-> Stub : <color:#6A1B9A>channel</color>
+Stub -[#6A1B9A]-> ScgCore : <color:#6A1B9A>gRPC</color>
+ScgCore ..[#6A1B9A]..> ScgServer : <color:#6A1B9A>forward</color>
 
 ' --- Brown: External tool launch ---
-SIMSCGCollectionViewerWidget -[#795548]-> AMEDiff : .ame files
-SIMSCGCollectionViewerWidget -[#795548]-> ConfiguredTool : other exts
+SIMSCGCollectionViewerWidget -[#795548]-> AMEDiff : <color:#795548>.ame files</color>
+SIMSCGCollectionViewerWidget -[#795548]-> ConfiguredTool : <color:#795548>other exts</color>
 
 @enduml

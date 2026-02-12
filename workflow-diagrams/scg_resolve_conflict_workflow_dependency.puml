@@ -1,5 +1,6 @@
 @startuml scg_resolve_conflict_workflow_dependency
 ' Pure class diagram: stable rendering in VS Code PlantUML preview
+set namespaceSeparator none
 skinparam packageStyle rectangle
 skinparam linetype ortho
 skinparam shadowing false
@@ -10,6 +11,10 @@ skinparam ArrowThickness 1.2
 skinparam ArrowColor #2E2E2E
 skinparam PackageBorderColor #6B6B6B
 skinparam PackageBackgroundColor #FFFFFF
+skinparam package<<external>>BackgroundColor #FFF8E1
+skinparam package<<external>>BorderColor #C2A66A
+skinparam package<<gui>>BackgroundColor #F1F8FF
+skinparam package<<gui>>BorderColor #6B8FB3
 skinparam ClassBorderColor #6B6B6B
 skinparam ClassBackgroundColor #FFFFFF
 skinparam wrapWidth 240
@@ -20,56 +25,49 @@ legend right
   <color:#6B6B6B>Gray</color> : dependency / uses (static)
 endlegend
 
-top to bottom direction
+left to right direction
 
-' Encourage stable top-to-bottom placement of the big groups
-gui_amesim_gui -[hidden]down-> transverse_scg_adapter
-transverse_scg_adapter -[hidden]down-> external_scg
+package "gui" as gui_amesim_gui <<gui>> {
+  package "amesim_suite/amesim_gui" as P_amesim_gui {
+    package "sim_data_display" as P_sim_data_display {
+      class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
+      class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
+      class "SIMSCGCollectionLibraryViewerWidget" as SIMSCGCollectionLibraryViewerWidget
 
-package "gui/amesim_suite/amesim_gui" as gui_amesim_gui {
-  package "sim_data_display" as P_sim_data_display {
-    class "SIMSCGCollectionViewerWidget" as SIMSCGCollectionViewerWidget
-    class "SIMSCGModelCollectionViewerWidget" as SIMSCGModelCollectionViewerWidget
-    class "SIMSCGCollectionLibraryViewerWidget" as SIMSCGCollectionLibraryViewerWidget
+      class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
 
-    class SCGUXMessenger
-    class "scg_ux_messenger_string" as scg_ux_messenger_string <<constants>>
+      SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
+      SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
 
-    SIMSCGModelCollectionViewerWidget -|> SIMSCGCollectionViewerWidget
-    SIMSCGCollectionLibraryViewerWidget -|> SIMSCGCollectionViewerWidget
+      SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_RESOLVE_CONFLICT
+      SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_BULKRESOLVE_CONFLICT
+    }
 
-    SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : messageReceived
-    SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_RESOLVE_CONFLICT
-    SIMSCGCollectionViewerWidget ..[#6B6B6B]..> scg_ux_messenger_string : UX_MESSAGE_BULKRESOLVE_CONFLICT
+    package "sysdm_integration" as P_sysdm {
+      class "scg::SCGIntegration" as SCGIntegration
+      class SCGUXMessenger
+      class SCGFileDialogWrapper
+
+      abstract class SCGWorkflow
+      class SCGResolveMergeConflictWorkflow
+
+      SCGResolveMergeConflictWorkflow -|> SCGWorkflow
+
+      SCGIntegration *-- SCGUXMessenger
+
+      SCGUXMessenger -[#1565C0]-> SIMSCGCollectionViewerWidget : messageReceived
+      SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(...)
+      SCGIntegration -[#1565C0]-> SCGResolveMergeConflictWorkflow : create + executeSCGWorkflow()
+      SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : getSaveModelAgainWrapperDialog()
+    }
+
+    ' Encourage stable ordering within this group
+    P_sim_data_display -[hidden]right-> P_sysdm
   }
-
-  package "sysdm_integration" as P_sysdm {
-    class "scg::SCGIntegration" as SCGIntegration
-
-    abstract class SCGWorkflow
-    class SCGResolveMergeConflictWorkflow
-
-    SCGResolveMergeConflictWorkflow -|> SCGWorkflow
-
-    SCGIntegration *-- SCGUXMessenger
-
-    SIMSCGModelCollectionViewerWidget -[#1565C0]-> SCGIntegration : resolveMergeConflict(...)
-    SCGIntegration -[#1565C0]-> SCGResolveMergeConflictWorkflow : create + executeSCGWorkflow()
-  }
-
-  package "sim_dialogs" as P_dialogs {
-    class SCGFileDialogWrapper
-    SIMSCGModelCollectionViewerWidget ..[#6B6B6B]..> SCGFileDialogWrapper : getSaveModelAgainWrapperDialog()
-  }
-
-  ' Encourage stable ordering within this group
-  P_sim_data_display -[hidden]down-> P_sysdm
-  P_sysdm -[hidden]down-> P_dialogs
 }
 
 package "transverse/scg_adapter" as transverse_scg_adapter {
   package "scg_base" as P_scg_base {
-    class scg_base <<cmake target>>
     class MLMConfig
   }
 
@@ -87,7 +85,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     class SCGGetCollectionMergeDetailsResponse
 
     interface SCGConnectorAPIInterface
-    class GITConnectorAPIImpl
+    class SCGConnectorAPIInterfaceImpl
 
     SCGResolveMergeConflictRequest -|> SCGRequest
     SCGResolveMergeConflictResponse -|> SCGAnswer
@@ -95,7 +93,7 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     SCGGetCollectionMergeDetailsRequest -|> SCGRequest
     SCGGetCollectionMergeDetailsResponse -|> SCGAnswer
 
-    GITConnectorAPIImpl ..|> SCGConnectorAPIInterface
+    SCGConnectorAPIInterfaceImpl ..|> SCGConnectorAPIInterface
 
     SCGService o-- SCGRequestFactory
     SCGService o-- SCGConnectorAPIInterface
@@ -105,23 +103,14 @@ package "transverse/scg_adapter" as transverse_scg_adapter {
     interface DataManagerInterface
     class DataManagerImpl
 
-    class GrpcCouplingMethods
     class ConnectionManager
 
     DataManagerImpl ..|> DataManagerInterface
-
-    DataManagerImpl ..[#6B6B6B]..> GrpcCouplingMethods
-    GrpcCouplingMethods ..[#6B6B6B]..> ConnectionManager
-  }
-
-  package "mlm_proto" as P_mlm_proto {
-    class mlm_proto <<cmake target>>
-    class "generated *.pb.h/*.grpc.pb.h" as MLMGeneratedProto
-    mlm_proto o-- MLMGeneratedProto
+    DataManagerImpl ..[#6B6B6B]..> ConnectionManager
   }
 }
 
-package "External / Third-party" as external_scg {
+package "External / SCG system" as external_scg <<external>> {
   package "Local SCG UX" as P_scg_ux {
     class "SCG UX" as ScgUx <<local web app>>
   }
@@ -137,6 +126,10 @@ package "External / Third-party" as external_scg {
     class "SCG Server" as ScgServer <<remote>>
   }
 }
+
+' Stable group ordering (GUI left -> adapter -> external right)
+gui_amesim_gui -[hidden]right-> transverse_scg_adapter
+transverse_scg_adapter -[hidden]right-> external_scg
 
 ' =====================================
 ' Resolve conflict (UX -> native -> gRPC)
@@ -174,10 +167,8 @@ SCGResolveMergeConflictWorkflow -[#1565C0]-> SCGService : dispatchRequest()
 
 SCGService -[#1565C0]-> SCGResolveMergeConflictRequest : execute()
 SCGResolveMergeConflictRequest -[#1565C0]-> SCGConnectorAPIInterface : resolveMergeConflict(user, request, error)
-SCGConnectorAPIInterface <|.. GITConnectorAPIImpl
 
-GITConnectorAPIImpl -[#1565C0]-> DataManagerInterface : resolveMergeConflict(user, request, error)
-DataManagerInterface <|.. DataManagerImpl
+SCGConnectorAPIInterfaceImpl -[#1565C0]-> DataManagerInterface : resolveMergeConflict(user, request, error)
 
 ConnectionManager -[#1565C0]-> Stub : gRPC\nresolveMergeConflict()
 Stub -[#1565C0]-> ScgCore : localhost:<grpc_port>
@@ -187,11 +178,6 @@ SCGIntegration ..[#1565C0]..> SCGRequestFactory : createRequestGetCollectionMerg
 SCGService ..[#1565C0]..> SCGGetCollectionMergeDetailsRequest : execute()
 SCGGetCollectionMergeDetailsRequest ..[#1565C0]..> SCGConnectorAPIInterface : getCollectionMergeDetails(...)
 ConnectionManager ..[#1565C0]..> Stub : gRPC\ngetCollectionMergeDetails()
-
-' Build-time / API-level dependencies (CMake targets)
-GrpcCouplingMethods ..[#6B6B6B]..> MLMGeneratedProto
-DataManagerImpl ..[#6B6B6B]..> mlm_proto
-DataManagerImpl ..[#6B6B6B]..> scg_base
 
 note right of SCGResolveMergeConflictRequest
   SCGResolveMergeConflictRequest parses the UX JSON and builds
