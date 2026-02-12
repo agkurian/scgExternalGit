@@ -1,0 +1,334 @@
+<mxfile>
+  <diagram name="Diagram" id="d1">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4000" pageHeight="3000">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="gui" style="swimlane;startSize=23;fillColor=#F1F8FF;strokeColor=#6B8FB3;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="1720" height="564" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="amesim_suite/amesim_gui" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="2" vertex="1">
+          <mxGeometry x="12" y="30" width="1080" height="422" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="sim_main_window" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="12" y="30" width="284" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="category_manip" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="316" y="30" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="sim_dialogs" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="620" y="30" width="288" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="sim_data_display" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="12" y="168" width="344" height="204" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="sim_gui_circuit_manip" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="376" y="168" width="352" height="204" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="sysdm_integration" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="3" vertex="1">
+          <mxGeometry x="748" y="168" width="312" height="242" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="common_gui/category_manip" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="2" vertex="1">
+          <mxGeometry x="1112" y="30" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="baselib/gui_tools_shared" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="2" vertex="1">
+          <mxGeometry x="1416" y="30" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="amesim_suite/plugins/plugin_management" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="2" vertex="1">
+          <mxGeometry x="12" y="462" width="382" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="kernel" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1820" y="40" width="441" height="132" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="kernel/application/ame_basic_tools_shared" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="13" vertex="1">
+          <mxGeometry x="12" y="30" width="409" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="transverse/scg_adapter" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="2321" y="40" width="928" height="384" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="scg_base" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="15" vertex="1">
+          <mxGeometry x="12" y="30" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="sysdm_service" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="15" vertex="1">
+          <mxGeometry x="316" y="30" width="288" height="242" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="mlm_data_manager" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="15" vertex="1">
+          <mxGeometry x="624" y="30" width="284" height="166" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="extractor" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="15" vertex="1">
+          <mxGeometry x="12" y="282" width="296" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="Local SCG UX" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="3309" y="40" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="Local SCG Core" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="3653" y="40" width="284" height="166" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="Local configuration" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="3997" y="40" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="External tools" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="4341" y="40" width="284" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="24" value="Remote SCG Server" style="swimlane;startSize=23;fillColor=#FFFFFF;strokeColor=#6B6B6B;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="4685" y="40" width="284" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="25" value="SIMMainWindow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="4" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="26" value="SIMDownloadModelWidget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="4" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="27" value="SIMPathListDialog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="5" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="28" value="SIMPreferencesModelMgt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="6" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="29" value="SIMSCGConnectorPublishWidget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="6" vertex="1">
+          <mxGeometry x="12" y="68" width="264" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="SIMSCGCollectionViewerWidget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="7" vertex="1">
+          <mxGeometry x="12" y="30" width="264" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="SIMSCGModelCollectionViewerWidget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="7" vertex="1">
+          <mxGeometry x="12" y="68" width="304" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="SIMSCGCollectionLibraryViewerWidget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="7" vertex="1">
+          <mxGeometry x="12" y="106" width="320" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="33" value="QWebEngineView" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="7" vertex="1">
+          <mxGeometry x="12" y="144" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="34" value="doc_mgr::SIMDocumentManagerInterface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="8" vertex="1">
+          <mxGeometry x="12" y="30" width="328" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="35" value="SIMEditor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="8" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="36" value="SIMCmdSCGGetCollectionMergeDetails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="8" vertex="1">
+          <mxGeometry x="12" y="106" width="312" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="37" value="SIMCmdSCGCreateBranchAndSwitch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="8" vertex="1">
+          <mxGeometry x="12" y="144" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="38" value="scg::SCGIntegration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="9" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="39" value="SCGUXMessenger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="9" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="SCGFileDialogWrapper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="9" vertex="1">
+          <mxGeometry x="12" y="106" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="SCGWorkflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="9" vertex="1">
+          <mxGeometry x="12" y="144" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="ModelManagementSupportInterface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="9" vertex="1">
+          <mxGeometry x="12" y="182" width="288" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="COMPathListDialog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="10" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="COMDockWindow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="11" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="45" value="PLGParser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="12" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="SIMPreferences" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="14" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="47" value="MLMConfig" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="16" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="48" value="SCGService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="17" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="49" value="SysDMRequestFactory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="17" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="50" value="SCGRequest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="17" vertex="1">
+          <mxGeometry x="12" y="106" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="SCGConnectorAPIInterface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="17" vertex="1">
+          <mxGeometry x="12" y="144" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="52" value="SCGConnectorAPIInterfaceImpl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="17" vertex="1">
+          <mxGeometry x="12" y="182" width="264" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="53" value="DataManagerInterface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="18" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="54" value="DataManagerImpl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="18" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="55" value="ConnectionManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="18" vertex="1">
+          <mxGeometry x="12" y="106" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="56" value="&amp;lt;&amp;lt;preprocess dependencies&amp;gt;&amp;gt;&#10;ExtractorCoreServiceInterface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#6B6B6B;fontSize=11;fontStyle=2;" parent="19" vertex="1">
+          <mxGeometry x="12" y="30" width="272" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="57" value="&amp;lt;&amp;lt;local web app&amp;gt;&amp;gt;&#10;SCG UX" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="20" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="58" value="&amp;lt;&amp;lt;gRPC stub&amp;gt;&amp;gt;&#10;Stub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="21" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="59" value="&amp;lt;&amp;lt;local gRPC endpoint&amp;gt;&amp;gt;&#10;SCG Core" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="21" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="60" value="&amp;lt;&amp;lt;local REST endpoint&amp;gt;&amp;gt;&#10;SCG REST API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="21" vertex="1">
+          <mxGeometry x="12" y="106" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="61" value="&amp;lt;&amp;lt;config file&amp;gt;&amp;gt;&#10;scg_config.properties" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="22" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="62" value="&amp;lt;&amp;lt;.ame diff/merge&amp;gt;&amp;gt;&#10;AMEDiff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="23" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="63" value="&amp;lt;&amp;lt;other extensions&amp;gt;&amp;gt;&#10;Configured tool" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="23" vertex="1">
+          <mxGeometry x="12" y="68" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="64" value="&amp;lt;&amp;lt;remote&amp;gt;&amp;gt;&#10;SCG Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6B6B;fontSize=11;" parent="24" vertex="1">
+          <mxGeometry x="12" y="30" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="65" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;endArrow=block;endFill=0;" parent="1" edge="1" source="31" target="30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="66" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;endArrow=block;endFill=0;" parent="1" edge="1" source="32" target="30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="67" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;startArrow=diamondThin;startFill=0;endArrow=none;startSize=14;" parent="1" edge="1" source="30" target="33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="68" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;startArrow=diamondThin;startFill=1;endArrow=none;startSize=14;" parent="1" edge="1" source="38" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="69" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;endArrow=block;endFill=0;" parent="1" edge="1" source="27" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="70" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;dashed=1;endArrow=block;endFill=0;" parent="1" edge="1" source="52" target="51">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="71" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6B6B;dashed=1;endArrow=block;endFill=0;" parent="1" edge="1" source="54" target="53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="72" value="load" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="33" target="57">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="73" value="ws msg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="57" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="74" value="received" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="39" target="30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="75" value="configure" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="57" target="60">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="76" value="persist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="60" target="59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="77" value="setWidget" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="27" target="44">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="78" value="setup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="27" target="32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="79" value="validate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="32" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="80" value="create" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="38" target="31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="81" value="upload/sync/merge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="31" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="82" value="save before diff" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#2E7D32;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="31" target="35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="83" value="active circuit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#2E7D32;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="30" target="34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="84" value="save to workspace" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#2E7D32;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="30" target="35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="85" value="SCG actions" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="25" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="86" value="download" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="26" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="87" value="publish" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="29" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="88" value="getMessenger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="30" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="89" value="merge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="36" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="90" value="branch" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="37" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="91" value="execute" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="38" target="41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="92" value="create" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="38" target="40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="93" value="input" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="41" target="40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="94" value="setDeps" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="29" target="42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="95" value="setProperty" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#E65100;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="42" target="45">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="96" value="SCG server URL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#C62828;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="28" target="46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="97" value="read ports" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#C62828;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="47" target="61">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="98" value="create" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="41" target="49">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="99" value="dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="41" target="48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="100" value="execute" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="48" target="50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="101" value="call" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="50" target="51">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="102" value="delegate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="52" target="53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="103" value="preprocess" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="54" target="56">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="104" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="54" target="55">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="105" value="channel" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="55" target="58">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="106" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="58" target="59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="107" value="forward" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#6A1B9A;strokeWidth=1.5;dashed=1;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="59" target="64">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="108" value=".ame files" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#795548;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="30" target="62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="109" value="other exts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;html=1;strokeColor=#795548;strokeWidth=1.5;fontSize=10;endArrow=open;endFill=0;" parent="1" edge="1" source="30" target="63">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
